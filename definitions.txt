@@ -1,0 +1,89 @@
+races:
+- human
+- elf
+- dwarf
+- orc
+...
+
+classes:
+- warrior (hp max: 5758)
+	- str: 20(4), agi: 10(2), hel: 15(3), skl: 10(2)
+- rogue (hp max: 4008)
+	- str: 15(3), agi: 20(4), hel: 10(2), skl: 10(2)
+- mage (hp max: 4008)
+	- str: 10(2), agi: 15(3), hel: 10(2), skl: 20(4)
+- cleric (hp max: 7507)
+	- str: 10(2), agi: 10(2), hel: 20(4), skl: 15(3)
+- barbarian (hp max: 7507)
+	- str: 15(3), agi: 10(2), hel: 20(4), skl: 10(2)
+- monster (only enemy)
+...
+
+attributes:
+- strength (damage, defense)
+- agility (critical, evade)
+- health (hp, defense)
+- skill (sp)
+
+skills:
+- heal [active leveled] (lv1 cleric -> 12 - 27, lv99 cleric -> 649 - 958)
+	- heals level * 5 + (random between skill/2 and skill*1.5)
+- fireball [active leveled] (lv1 mage -> 15 - 35, lv99 mage -> 701 - 1113)
+	- damage: level * 5 + (random between skill/2 and skill*1.5)
+...
+
+player:
+- name
+- race
+- class
+- attributes
+- skills
+- exp
+- life
+	- initial -> 50 + 1/3 health
+	- levelup -> 5 + 1/3 health
+- current life
+- sp (skill points)
+	- initial -> 10 + 1/5 skill
+	- levelup -> 1/5 skill
+- current sp
+- attack (lv1 warrior -> 13 - 33, lv99 warrior -> 503 - 915) (lv1 mage -> 8 - 18, lv99 mage -> 400 - 606)
+	- 3 * level + (random between strength/2 and strength*1.5)
+- defense (lv1 warrior -> 11, lv99 warrior -> 240) (lv1 mage -> 6, lv99 mage -> 137)
+	- (strength + health) / 3
+- critical (lv1 warrior -> 1%, lv99 warrior -> 20.6%) (lv1 rogue -> 2%, lv99 rogue -> 41.2%)
+	- agility / 10
+- evade (lv1 warrior -> 0.8%, lv99 warrior -> 16.5%) (lv1 rogue -> 1.6%, lv99 rogue -> 33%)
+	- agility * 0.08
+- level (1 to 99)
+- equipment
+	- +/- damage, +/- critical%, +/- evade%, +/- hp, +/- sp, give skill
+- bag
+
+enemy:
+- name
+- class (monster)
+- attributes
+- skills
+- life
+- current life
+- sp
+- current sp
+- attack
+- defense
+- critical
+- evade
+
+# calculate health
+# (defn calc-hp [init-health health-inc level]
+#	    (loop [att init-health, life (+ 20 (/ init-health 3)), l 1]
+#	       (if (< l level)
+#		   (recur (+ att health-inc) (+ life 5 (/ att 3)) (inc l))
+#		   {:att att, :life (double life), :level l})))
+#
+# calculate skill points
+# (defn calc-sp [init-skill skill-inc level]
+#	    (loop [att init-skill, sp (+ 10 (/ init-skill 5)), l 1]
+#	       (if (< l level)
+#		   (recur (+ att skill-inc) (+ sp (/ att 5)) (inc l))
+#		   {:att att, :sp (double sp), :level l})))
