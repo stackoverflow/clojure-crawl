@@ -25,11 +25,11 @@ attributes:
 - health (life, defense)
 - magic (mana, skill power)
 
-skills:
-- heal [active leveled] (lv1 cleric -> 12 - 27, lv99 cleric -> 649 - 958)
-	- heals level * 5 + (random between magic/2 and magic*1.5)
-- fireball [active leveled] (lv1 mage -> 15 - 35, lv99 mage -> 701 - 1113)
-	- damage: level * 5 + (random between magic/2 and magic*1.5)
+skills: (divided in passive and active, active ones have levels 1->10)
+- heal [active leveled] (lv1 cleric -> 6 - 8, lv99 cleric -> 1030 - 1545)
+	- heals: heal level * (random between magic/3 and magic/2)
+- fireball [active leveled] (lv1 mage -> 7 - 11, lv99 mage -> 1373 - 2060)
+	- damage: fireball level * (random between magic/3 and magic/2)
 ...
 
 player:
@@ -47,8 +47,8 @@ player:
 	- initial -> 10 + 1/5 magic
 	- levelup -> 1/5 magic
 - current mana
-- attack (lv1 warrior -> 13 - 33, lv99 warrior -> 503 - 915) (lv1 mage -> 8 - 18, lv99 mage -> 400 - 606)
-	- 3 * level + (random between strength/2 and strength*1.5)
+- attack (lv1 warrior -> 15 - 25, lv99 warrior -> 701 - 907) (lv1 mage -> 10 - 15, lv99 mage -> 598 - 701)
+	- 5 * level + (random between strength/2 and strength)
 - defense (lv1 warrior -> 11, lv99 warrior -> 240) (lv1 mage -> 6, lv99 mage -> 137)
 	- (strength + health) / 3
 - critical (lv1 warrior -> 1%, lv99 warrior -> 20.6%) (lv1 rogue -> 2%, lv99 rogue -> 41.2%)
