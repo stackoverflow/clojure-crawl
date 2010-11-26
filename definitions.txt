@@ -26,10 +26,10 @@ attributes:
 - magic (mana, skill power)
 
 skills: (divided in passive and active, active ones have levels 1->10)
-- heal [active leveled] (lv1 cleric -> 6 - 8, lv99 cleric -> 1030 - 1545)
-	- heals: heal level * (random between magic/3 and magic/2)
-- fireball [active leveled] (lv1 mage -> 7 - 11, lv99 mage -> 1373 - 2060)
-	- damage: fireball level * (random between magic/3 and magic/2)
+- heal [active leveled] (lv1 cleric -> 12 - 16, lv99 cleric -> 463 - 618)
+	- heals: 1.(heal level) * (random between magic*0.75 and magic)
+- fireball [active leveled] (lv1 mage -> 16 - 22, lv99 mage -> 618 - 824)
+	- damage: 1.(fireball level) * (random between magic*0.75 and magic)
 ...
 
 player:
@@ -40,21 +40,21 @@ player:
 - skills
 - exp
 - life
-	- initial -> 50 + 1/3 health
+	- initial -> 40 + health
 	- levelup -> 5 + 1/3 health
 - current life
 - mana
 	- initial -> 10 + 1/5 magic
 	- levelup -> 1/5 magic
 - current mana
-- attack (lv1 warrior -> 15 - 25, lv99 warrior -> 701 - 907) (lv1 mage -> 10 - 15, lv99 mage -> 598 - 701)
-	- 5 * level + (random between strength/2 and strength)
-- defense (lv1 warrior -> 11, lv99 warrior -> 240) (lv1 mage -> 6, lv99 mage -> 137)
-	- (strength + health) / 3
-- critical (lv1 warrior -> 1%, lv99 warrior -> 20.6%) (lv1 rogue -> 2%, lv99 rogue -> 41.2%)
-	- agility / 10
-- evade (lv1 warrior -> 0.8%, lv99 warrior -> 16.5%) (lv1 rogue -> 1.6%, lv99 rogue -> 33%)
+- attack (lv1 warrior -> 11 - 22, lv99 warrior -> 412 - 824) (lv1 mage -> 5 - 11, lv99 mage -> 206 - 412)
+	- 1.(level) * (random between strength/2 and strength)
+- defense (lv1 warrior -> 3, lv99 warrior -> 72) (lv1 mage -> 2, lv99 mage -> 41)
+	- (strength + health) / 10
+- critical (lv1 warrior -> 0.8%, lv99 warrior -> 16.5%) (lv1 rogue -> 1.6%, lv99 rogue -> 33%)
 	- agility * 0.08
+- evade (lv1 warrior -> 0.6%, lv99 warrior -> 12.3%) (lv1 rogue -> 1.2%, lv99 rogue -> 24.7%)
+	- agility * 0.06
 - level (1 to 99)
 - equipment
 	- name, description, effect
@@ -89,15 +89,15 @@ effects: (granted by items (temp or not), equipment, race, skills)
 - grant skill
 
 # calculate health
- (defn calc-hp [init-health health-inc level]
-	    (loop [att init-health, life (+ 20 (/ init-health 3)), l 1]
-	       (if (< l level)
-		   (recur (+ att health-inc) (+ life (/ att 3)) (inc l))
-		   {:att att, :life (double life), :level l})))
+(defn calc-hp [init-health health-inc level]
+      (loop [att init-health, life (* health-inc 15), l 1]
+      	    (if (< l level)
+	    	(recur (+ att health-inc) (+ life (* health-inc 15)) (inc l))
+		{:att att, :life (double life), :level l})))
 
 # calculate mana
- (defn calc-mana [init-magic magic-inc level]
-	    (loop [att init-magic, sp (+ 10 (/ init-magic 5)), l 1]
-	       (if (< l level)
-		   (recur (+ att magic-inc) (+ sp (/ att 5)) (inc l))
-		   {:att att, :sp (double sp), :level l})))
+(defn calc-mana [init-magic magic-inc level]
+      (loop [att init-magic, sp (+ 10 (/ init-magic 5)), l 1]
+      	    (if (< l level)
+	    	(recur (+ att magic-inc) (+ sp (/ att 5)) (inc l))
+		{:att att, :sp (double sp), :level l})))
