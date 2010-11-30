@@ -43,7 +43,7 @@ skills: (divided in passive and active, active ones have levels 1->10)
 - sneak [passive]
   	- adds level/2 to hide%
 - magic up [passive]
-  	- adds level to magic attack
+  	- adds level to magic
 - vitality [passive]
 	- adds level * 3 to life
 ...
@@ -80,6 +80,7 @@ player:
 	  kind [sword, axe, heavy armor, light armor, etc], 
 	  prefix, suffix, level, effect
 - bag (holds 20 items)
+- effects
 
 enemy:
 - name
@@ -111,10 +112,20 @@ effects: (granted by items (temp or not), equipment, race, skills)
 - +/- mana regen
 - +/- hide
 - grant skill
+- expiration (nil or some date)
 
 prefix/suffix:
 - name
 - type (suffix, prefix)
+- effect
+
+skill:
+- name
+- description
+- only-in-battle (true or false)
+- active (true or false)
+- level (only used in active ones)
+- target (self, enemy, both [only used in active skills])
 - effect
 
 # calculate health

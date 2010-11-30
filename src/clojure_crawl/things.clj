@@ -1,6 +1,6 @@
 (ns clojure-crawl.things)
 
-(defrecord Effect [strength agility health magic attack defense critical evade life mana life-regen mana-regen hide skills])
+(defrecord Effect [strength agility health magic attack defense critical evade life mana life-regen mana-regen hide skills expires])
 
 (defrecord AFix [name type effect])
 
