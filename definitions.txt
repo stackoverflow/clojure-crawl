@@ -4,8 +4,9 @@ races:
 - dwarf (+4 to strength and health, +15 to life)
 - orc (+5 to strength, +3 to health, +5 to attack)
 - hobbit (+5 to agility, +1% to critical and evade, +5% to hide)
-- construct (+5 to health, 1/sec life regen)
-- djinn (+5 to magic, 1/10 sec mana regen)
+- construct (+5 to health, +3 to strength, 1/sec life regen)
+- djinn (+5 to magic, +3 to agility, 1/10 sec mana regen)
+- vampire (1/sec life regen, +5% to hide, +5 to defense)
 
 classes: (give a predefined set of skills, define attributes: 1 primary, 1 secondary, 2 tertiary)
 - warrior (hp max: 4945, mana max: 2109)
@@ -25,7 +26,12 @@ attributes:
 - magic (mana, skill power)
 
 skills: (divided in passive and active, active ones have levels 1->10)
-- 
+- crush [active leveled]
+  	- damage: 10 + 1.(crush level) * atack
+	- mana: 5 * crush level
+- critical strike [active leveled]
+  	- damage: adds cs level * 5 to attack and critical
+	- mana: 5 * cs level
 - fireball [active leveled] (lv1 mage -> 16 - 22, lv99 mage -> 618 - 824)
 	- damage: 1.(fireball level) * (random between magic*0.75 and magic)
 	- mana: 5 * fireball level
@@ -35,7 +41,11 @@ skills: (divided in passive and active, active ones have levels 1->10)
 - atack up [passive] (lv1 warrior -> 7 - 11, lv99 warrior -> 253 - 305)
   	- adds level to atack
 - sneak [passive]
-  	- level/2% chance of not being seen by enemy
+  	- adds level/2 to hide%
+- magic up [passive]
+  	- adds level to magic attack
+- vitality [passive]
+	- adds level * 3 to life
 ...
 
 player:
@@ -46,7 +56,7 @@ player:
 - skills
 - exp
 - life
-	- initial -> 10 + (3 * health)
+	- initial -> 20 + (2 * health)
 	- levelup -> 15 * health-inc
 - current life
 - mana
@@ -66,8 +76,10 @@ player:
 - hide (default 0)
 - level (1 to 99)
 - equipment
-	- name, description, effect
-- bag
+	- name, description, type [weapon, shield, armor, ring], 
+	  kind [sword, axe, heavy armor, light armor, etc], 
+	  prefix, suffix, level, effect
+- bag (holds 20 items)
 
 enemy:
 - name
@@ -100,9 +112,14 @@ effects: (granted by items (temp or not), equipment, race, skills)
 - +/- hide
 - grant skill
 
+prefix/suffix:
+- name
+- type (suffix, prefix)
+- effect
+
 # calculate health
 (defn calc-hp [init-health health-inc level]
-      (loop [att init-health, life (+ 10 (* init-health 3)), l 1]
+      (loop [att init-health, life (+ 20 (* init-health 2)), l 1]
       	    (if (< l level)
 	    	(recur (+ att health-inc) (+ life 20 (* health-inc 10)) (inc l))
 		{:att att, :life (double life), :level l})))
