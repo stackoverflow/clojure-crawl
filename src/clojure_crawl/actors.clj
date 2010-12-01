@@ -1,15 +1,26 @@
 (ns clojure-crawl.actors
-  (:use clojure-crawl.utils))
+  (:use clojure-crawl.utils)
+  (:require [clojure [string :as string]]))
 
 (defrecord Race [name description effect])
 
 (defrecord Clazz [name description strength agility health magic skills])
 
-(defrecord Skill [name description only-in-battle? active? level target effect])
+(defrecord Skill [name description only-in-battle? active? level target])
 
-(defprotocol Skillable
-  (attack [skill actor])
-  (critical [skill actor]))
+(defmulti skill-strength :name)
+(defmulti skill-agility :name)
+(defmulti skill-health :name)
+(defmulti skill-magic :name)
+(defmulti skill-attack :name)
+(defmulti skill-defense :name)
+(defmulti skill-critical :name)
+(defmulti skill-evade :name)
+(defmulti skill-life :name)
+(defmulti skill-mana :name)
+(defmulti skill-life-regen :name)
+(defmulti skill-mana-regen :name)
+(defmulti skill-hide :name)
 
 (defrecord Player [name race clazz strength agility health magic skills exp life max-life mana max-mana life-regen mana-regen level equip bag effects])
 
@@ -24,6 +35,52 @@
   (life-regen [actor])
   (mana-regen [actor])
   (hide [actor]))
+
+(defprotocol Descriptable
+  (describe [stuff]))
+
+(defn- effect->str [key effect desc]
+  (let [tattr (key effect)
+	name (subs (str key) 1)
+	attr (if (or (= name "critical")
+		     (= name "evade")
+		     (= name "hide"))
+	       (str tattr "%")
+	       (if (= name "life-regen")
+		 (str tattr "/5 (per second)")
+		 (if (= name "mana-regen")
+		   (str tattr "/20 (per second)")
+		   tattr)))]
+		 
+    (when (not= attr 0)
+      (add-to! desc (str "* " (if (pos? attr)
+				(str "+" attr)
+				attr)
+			 " to " name)))))
+
+(defn describe-effect [effect]
+  (let [desc (atom [])]
+    (effect->str :strength effect desc)
+    (effect->str :agility effect desc)
+    (effect->str :health effect desc)
+    (effect->str :magic effect desc)
+    (effect->str :attack effect desc)
+    (effect->str :defense effect desc)
+    (effect->str :critical effect desc)
+    (effect->str :evade effect desc)
+    (effect->str :life effect desc)
+    (effect->str :mana effect desc)
+    (effect->str :life-regen effect desc)
+    (effect->str :mana-regen effect desc)
+    (effect->str :hide effect desc)
+    (doseq [sk (:skills effect)]
+      (add-to! desc (str "* gives skill: " (:name sk))))
+    (string/join "\n" @desc)))
+
+(extend-type Race
+  Descriptable
+  (describe [race]
+	    (describe-effect (:effect race))))
 
 (extend-type Enemy
   Actor
@@ -55,11 +112,17 @@
   (reduce + (map key @(:effects player))))
 
 (defn- equip-bonus [key player]
-  (reduce + (map key (map :effect @(:equip player)))))
+  (let [eq (reduce + (map key (map :effect @(:equip player))))
+	pre (reduce + (map key (map :effect (map :prefix @(:equip player)))))
+	suf (reduce + (map key (map :effect (map :suffix @(:equip player)))))]
+    (+ eq pre suf)))
 
 (defn- skill-bonus [key player]
-  (let [passives (filter #(not (:active? %)) @(:skills player))]
-    (reduce + (map key (map :effect passives)))))
+  (let [passives (filter #(not (:active? %)) @(:skills player))
+	keyname (subs (str key) 1)
+	bonus (fn [sk]
+		(eval-string (str "(skill-" keyname " " sk ")")))]
+    (reduce + (map key (map bonus passives)))))
 
 (defn- all-bonus [key player]
   (+ (race-bonus key player)

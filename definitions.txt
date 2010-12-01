@@ -126,7 +126,6 @@ skill:
 - active (true or false)
 - level (only used in active ones)
 - target (self, enemy, both [only used in active skills])
-- effect
 
 # calculate health
 (defn calc-hp [init-health health-inc level]
