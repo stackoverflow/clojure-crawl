@@ -8,6 +8,7 @@
 
 (defrecord Skill [name description only-in-battle? active? level target])
 
+(defmulti mana-consume :name)
 (defmulti skill-strength :name)
 (defmulti skill-agility :name)
 (defmulti skill-health :name)
@@ -121,7 +122,7 @@
   (let [passives (filter #(not (:active? %)) @(:skills player))
 	keyname (subs (str key) 1)
 	bonus (fn [sk]
-		(eval-string (str "(skill-" keyname " " sk ")")))]
+		(eval-string (str "(skill-" keyname " " sk " " player ")")))]
     (reduce + (map key (map bonus passives)))))
 
 (defn- all-bonus [key player]
