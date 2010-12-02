@@ -3,13 +3,10 @@
   (:use clojure-crawl.actors
 	clojure-crawl.utils))
 
-(extend-type Skill
-  Descriptable
-  (describe [skill]
-	  (describe-effect (:effect skill))))
-
-(defmacro gen-skill-methods [name consu st ag he ma at de cr ev li mn lr mr hi]
+(defmacro gen-skill-methods [name desc consu st ag he ma at de cr ev li mn lr mr hi]
   `(do (defmethod ~'mana-consume ~name [~'skill ~'actor] ~consu)
+       (defmethod ~'describe-skill ~name [~'skill]
+	 (str "level: " @(:level ~'skill) "\n" ~desc))
        (defmethod ~'skill-strength ~name [~'skill ~'actor] ~st)
        (defmethod ~'skill-agility ~name [~'skill ~'actor] ~ag)
        (defmethod ~'skill-health ~name [~'skill ~'actor] ~he)
@@ -38,6 +35,8 @@
       :vitality (new Skill "Vitality" "Increases life" false false nil nil)})
 
 (gen-skill-methods "Crush"
+		   "damage: 10 + 1.(skill level) * attack
+mana: 5 * crush level"
 		   (* 5 @(:level skill)) ;consume
 		   nil nil nil nil
 		   (let [bonus (+ 1 (/ @(:level skill) 10))]
@@ -45,6 +44,8 @@
 		   nil nil nil nil nil nil nil nil)
 
 (gen-skill-methods "Critical Strike"
+		   "effect: adds skill level * 5 to attack and critical
+mana: 5 * crush level"
 		   (* 5 @(:level skill)) ;consume
 		   nil nil nil nil
 		   (+ (* 5 @(:level skill)) (attack actor)) ;attack
@@ -53,6 +54,7 @@
 		   nil nil nil nil nil nil)
 
 (gen-skill-methods "Fireball"
+		   "damage: 1.(skill level)"
 		   (* 5 @(:level skill)) ;consume
 		   nil nil nil nil
 		   (let [mag @(:magic actor)
@@ -84,7 +86,7 @@
 		   @(:level actor) ;magic
 		   nil nil nil nil nil nil nil nil nil)
 
-(gen-skill-methods "Vitality Up"
+(gen-skill-methods "Vitality"
 		   nil nil nil nil nil nil nil nil nil
 		   (* 3 @(:level actor)) ;health
 		   nil nil nil nil)

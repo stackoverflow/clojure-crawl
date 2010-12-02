@@ -8,6 +8,7 @@
 
 (defrecord Skill [name description only-in-battle? active? level target])
 
+(defmulti describe-skill :name)
 (defmulti mana-consume :name)
 (defmulti skill-strength :name)
 (defmulti skill-agility :name)
@@ -82,6 +83,11 @@
   Descriptable
   (describe [race]
 	    (describe-effect (:effect race))))
+
+(extend-type Skill
+  Descriptable
+  (describe [skill]
+	    (describe-skill skill)))
 
 (extend-type Enemy
   Actor
