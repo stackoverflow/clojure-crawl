@@ -53,7 +53,6 @@
 		 (if (= name "mana-regen")
 		   (str tattr "/20 (per second)")
 		   tattr)))]
-		 
     (when (not= attr 0)
       (add-to! desc (str "* " (if (pos? attr)
 				(str "+" attr)
@@ -83,11 +82,6 @@
   Descriptable
   (describe [race]
 	    (describe-effect (:effect race))))
-
-(extend-type Skill
-  Descriptable
-  (describe [skill]
-	    (describe-skill skill)))
 
 (extend-type Enemy
   Actor

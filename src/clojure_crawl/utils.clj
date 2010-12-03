@@ -10,3 +10,9 @@
 
 (defn eval-string [s]
   (eval (read-string s)))
+
+(defn vec->damage [v]
+  (str (first v) " - " (second v)))
+
+(defn apply-in-vec [f v]
+  (vec (map f v)))
