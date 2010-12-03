@@ -24,7 +24,7 @@
 (defmulti skill-mana-regen :name)
 (defmulti skill-hide :name)
 
-(defrecord Player [name race clazz strength agility health magic skills exp life max-life mana max-mana life-regen mana-regen level equip bag effects])
+(defrecord Player [name race clazz strength agility health magic skills exp life max-life mana max-mana level equip bag effects])
 
 (defrecord Enemy [name description clazz strength agility health magic skills life max-life mana max-mana level])
 
@@ -159,9 +159,9 @@
   (life-regen [player]
 	      (let [bonus (all-bonus :life-regen player)
 		    level @(:level player)]
-		(+ (/ level 5) bonus)))
+		(/ (+ level bonus) 5)))
   (mana-regen [player]
 	      (let [bonus (all-bonus :mana-regen player)
 		    level @(:level player)]
-		(+ (/ level 20) bonus)))
+		(/ (+ level bonus) 20)))
   (hide [player] (all-bonus :hide player)))
