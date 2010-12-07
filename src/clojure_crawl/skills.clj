@@ -5,8 +5,7 @@
 
 (defmacro gen-skill-methods [name desc consu st ag he ma at de cr ev li mn lr mr hi]
   `(do (defmethod ~'mana-consume ~name [~'skill ~'actor] ~consu)
-       (defmethod ~'describe-skill ~name [~'skill ~'actor]
-	 (merge {:level @(:level ~'skill)} ~desc))
+       (defmethod ~'describe-skill ~name [~'skill ~'actor] ~desc)
        (defmethod ~'skill-strength ~name [~'skill ~'actor] ~st)
        (defmethod ~'skill-agility ~name [~'skill ~'actor] ~ag)
        (defmethod ~'skill-health ~name [~'skill ~'actor] ~he)
@@ -25,7 +24,7 @@
      {:crush (new Skill "Crush" "Powerfull attack" true true (atom 1) :enemy)
       :critical-strike (new Skill "Critical Strike"
 			    "Improves attack and critical %" true true (atom 1) :enemy)
-      :fireball (new Skill "Fireball" "Auto-descriptive" true true (atom 1) :enemy)
+      :fireball (new Skill "Fireball" "Great ball of fire" true true (atom 1) :enemy)
       :heal (new Skill "Heal" "Increase current life" false true (atom 1) :self)
       :attack-up (new Skill "Attack Up" "Increases attack power"
 		      false false nil nil)
@@ -40,10 +39,10 @@
 		     {:attack (apply-in-vec #(+ 10 (* tmp %)) (base-attack actor)),
 		      :critical (critical actor), :mana (* 5 level)})
 		   (* 5 @(:level skill)) ;consume
-		   nil nil nil nil
+		   0 0 0 0
 		   (let [bonus (+ 1 (/ @(:level skill) 10))]
 		     (+ 10 (* bonus (attack actor)))) ;attack
-		   nil nil nil nil nil nil nil nil)
+		   0 0 0 0 0 0 0 0)
 
 (gen-skill-methods "Critical Strike"
 		   (let [level @(:level skill)
@@ -52,11 +51,11 @@
 		     {:attack (apply-in-vec #(+ (* 5 level) %) batt),
 		      :critical (+ (* 5 level) crit), :mana (* 5 level)})		   
 		   (* 5 @(:level skill)) ;consume
-		   nil nil nil nil
+		   0 0 0 0
 		   (+ (* 5 @(:level skill)) (attack actor)) ;attack
-		   nil
+		   0
 		   (+ (* 5 @(:level skill)) (critical actor)) ;critical
-		   nil nil nil nil nil nil)
+		   0 0 0 0 0 0)
 
 (gen-skill-methods "Fireball"
 		   (let [level @(:level skill)
@@ -65,12 +64,12 @@
 			 m2 (* mag 0.75)]
 		     {:attack [(* tmp m2) (* tmp mag)], :mana (* 5 level)})		   
 		   (* 5 @(:level skill)) ;consume
-		   nil nil nil nil
+		   0 0 0 0
 		   (let [mag @(:magic actor)
 			 m3 (* mag 0.75)			 
 			 bonus (+ 1 (/ @(:level skill) 10))]
 		     (* bonus (rand-between m3 mag))) ;attack (magic)
-		   nil nil nil nil nil nil nil nil)
+		   0 0 0 0 0 0 0 0)
 
 (gen-skill-methods "Heal"
 		   (let [level @(:level skill)
@@ -79,32 +78,32 @@
 			 m2 (* mag 0.75)]
 		     {:attack [(* tmp m2) (* tmp mag)], :mana (* 5 level)})		   
 		   (* 5 @(:level skill)) ;consume
-		   nil nil nil nil
+		   0 0 0 0
 		   (let [mag @(:magic actor)
 			 m3 (* mag 0.75)			 
 			 bonus (+ 1 (/ @(:level skill) 10))]
 		     (* bonus (rand-between m3 mag))) ;attack (magic)
-		   nil nil nil nil nil nil nil nil)
+		   0 0 0 0 0 0 0 0)
 
 (gen-skill-methods "Attack Up"
 		   {:attack @(:level actor)}
-		   nil nil nil nil nil
+		   0 0 0 0 0
 		   @(:level actor) ;attack
-		   nil nil nil nil nil nil nil nil)
+		   0 0 0 0 0 0 0 0)
 
 (gen-skill-methods "Sneak"
 		   {:hide (/ @(:level actor) 2)}
-		   nil nil nil nil nil nil nil nil nil nil nil nil nil
+		   0 0 0 0 0 0 0 0 0 0 0 0 0
 		   (/ @(:level actor) 2)) ;hide
 
 (gen-skill-methods "Magic Up"
 		   {:magic @(:level actor)}
-		   nil nil nil nil
+		   0 0 0 0
 		   @(:level actor) ;magic
-		   nil nil nil nil nil nil nil nil nil)
+		   0 0 0 0 0 0 0 0 0)
 
 (gen-skill-methods "Vitality"
 		   {:life (* 3 @(:level actor))}
-		   nil nil nil nil nil nil nil nil nil
+		   0 0 0 0 0 0 0 0 0
 		   (* 3 @(:level actor)) ;life
-		   nil nil nil nil)
+		   0 0 0 0)

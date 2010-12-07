@@ -1,4 +1,5 @@
-(ns clojure-crawl.utils)
+(ns clojure-crawl.utils
+  (:import (java.text DecimalFormat)))
 
 (defn rand-between [start end]
   (let [diff (- end start)
@@ -16,3 +17,7 @@
 
 (defn apply-in-vec [f v]
   (vec (map f v)))
+
+(defn to-num [n]
+  (let [f (new DecimalFormat "0.##")]
+    (. (. f format (double n)) (replaceAll "," "\\."))))
