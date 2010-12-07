@@ -29,6 +29,12 @@
 (defrecord Enemy [name description clazz strength agility health magic skills life max-life mana max-mana level])
 
 (defprotocol Actor
+  (strength [actor])
+  (agility [actor])
+  (health [actor])
+  (magic [actor])
+  (max-life [actor])
+  (max-mana [actor])
   (base-attack [actor])
   (attack [actor])
   (defense [actor])
@@ -85,6 +91,18 @@
 
 (extend-type Enemy
   Actor
+  (strength [enemy]
+	    (:strength enemy))
+  (agility [enemy]
+	   (:agility enemy))
+  (health [enemy]
+	  (:health enemy))
+  (magic [enemy]
+	 (:magic enemy))
+  (max-life [enemy]
+	    (:max-life enemy))
+  (max-mana [enemy]
+	    (:max-mana enemy))
   (base-atack [enemy]
 	      (let [s (:strength enemy)]
 		[(/ s 3) (/ s 2)]))
@@ -120,10 +138,35 @@
 
 (defn- skill-bonus [key player]
   (let [passives (filter #(not (:active? %)) @(:skills player))
-	keyname (subs (str key) 1)
 	bonus (fn [sk]
-		(eval-string (str "(skill-" keyname " " sk " " player ")")))]
-    (reduce + (map key (map bonus passives)))))
+		(cond (= key :strength)
+		      (skill-strength sk player)
+		      (= key :agility)
+		      (skill-agility sk player)
+		      (= key :health)
+		      (skill-health sk player)
+		      (= key :magic)
+		      (skill-magic sk player)
+		      (= key :attack)
+		      (skill-attack sk player)
+		      (= key :defense)
+		      (skill-defense sk player)
+		      (= key :critical)
+		      (skill-critical sk player)
+		      (= key :evade)
+		      (skill-evade sk player)
+		      (= key :life)
+		      (skill-life sk player)
+		      (= key :mana)
+		      (skill-mana sk player)
+		      (= key :life-regen)
+		      (skill-life-regen sk player)
+		      (= key :mana-regen)
+		      (skill-mana-regen sk player)
+		      (= key :hide)
+		      (skill-hide sk player)))]
+    (let [res (reduce + (map bonus passives))]
+      (if res res 0))))
 
 (defn- all-bonus [key player]
   (+ (race-bonus key player)
@@ -131,8 +174,37 @@
      (equip-bonus key player)
      (skill-bonus key player)))
 
+(defn- all-bonus-except-race [key player]
+  (+ (effect-bonus key player)
+     (equip-bonus key player)
+     (skill-bonus key player)))
+
 (extend-type Player
   Actor
+  (strength [player]
+	    (let [s @(:strength player)
+		  bonus (all-bonus-except-race :strength player)]
+	      (+ s bonus)))
+  (agility [player]
+	    (let [a @(:agility player)
+		  bonus (all-bonus-except-race :agility player)]
+	      (+ a bonus)))
+  (health [player]
+	    (let [h @(:health player)
+		  bonus (all-bonus-except-race :health player)]
+	      (+ h bonus)))
+  (magic [player]
+	    (let [m @(:magic player)
+		  bonus (all-bonus-except-race :magic player)]
+	      (+ m bonus)))
+  (max-life [player]
+	    (let [ml @(:max-life player)
+		  bonus (all-bonus-except-race :life player)]
+	      (+ ml bonus)))
+  (max-mana [player]
+	    (let [mm @(:max-mana player)
+		  bonus (all-bonus-except-race :mana player)]
+	      (+ mm bonus)))
   (base-attack [player]
 	       (let [bonus (all-bonus :attack player)
 		     s @(:strength player)]

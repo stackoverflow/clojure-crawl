@@ -1,8 +1,10 @@
 (ns clojure-crawl.game
   (:use clojure-crawl.races
 	clojure-crawl.skills
-	clojure-crawl.classes)
-  (:import (clojure-crawl.actors Player)))
+	clojure-crawl.classes
+	clojure-crawl.actors)
+  (:import (clojure-crawl.actors Player))
+  (:require [clojure [string :as string]]))
 
 (defn- add-race-bonus [item race value]
   (+ (item (:effect race)) value))
@@ -25,18 +27,21 @@
 	 (atom life) ;max life
 	 (atom mana)
 	 (atom mana) ;max mana
-	 1 ; level
+	 (atom 1) ; level
 	 (atom []) ;equip
 	 (atom []) ;bag
 	 (atom [])))) ;effects
 
-(defn show-actor [actor]
-  (str "===== " (:name actor) " =====\n"
-       "race: " (:name (:race actor)) "\n"
-       "class: " (:name @(:clazz actor)) "\n\n"
-       "strength: " @(:strength actor) "\n"
-       "agility: " @(:agility actor) "\n"
-       "health: " @(:health actor) "\n"
-       "magic: " @(:magic actor) "\n"
-       "life: " @(:life actor) "/" @(:max-life actor) "\n"
-       "mana: " @(:mana actor) "/" @(:max-mana actor) "\n"))
+(defn show-player [player]
+  (str "===== " (:name player) " =====\n"
+       "race: " (:name (:race player)) "\n"
+       "class: " (:name @(:clazz player)) "\n\n"
+       "strength: " (strength player) "\n"
+       "agility: " (agility player) "\n"
+       "health: " (health player) "\n"
+       "magic: " (magic player) "\n"
+       "life: " @(:life player) "/" (max-life player) "\n"
+       "mana: " @(:mana player) "/" (max-mana player) "\n"
+       "life regen: " (double (life-regen player)) " per second\n"
+       "mana regen: " (double (mana-regen player)) " per second\n"
+       "skills: " (string/join ", " (map :name @(:skills player)))))
