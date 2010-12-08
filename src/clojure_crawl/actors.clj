@@ -26,7 +26,7 @@
 
 (defrecord Player [name race clazz strength agility health magic skills exp life max-life mana max-mana level equip bag effects])
 
-(defrecord Enemy [name description clazz strength agility health magic skills life max-life mana max-mana level])
+(defrecord Enemy [name description strength agility health magic skills life max-life mana max-mana level drop])
 
 (defprotocol Actor
   (strength [actor])
@@ -103,7 +103,7 @@
 	    (:max-life enemy))
   (max-mana [enemy]
 	    (:max-mana enemy))
-  (base-atack [enemy]
+  (base-attack [enemy]
 	      (let [s (:strength enemy)]
 		[(/ s 3) (/ s 2)]))
   (attack [enemy]
@@ -237,3 +237,43 @@
 		    level @(:level player)]
 		(/ (+ level bonus) 20)))
   (hide [player] (all-bonus :hide player)))
+
+;; create player
+
+(defn- add-race-bonus [item race value]
+  (+ (item (:effect race)) value))
+
+(defn- life-skill-bonus [skills actor]
+  (let [pass (filter #(not (:active? %)) skills)]
+    (reduce + (map #(skill-life % actor) skills))))
+
+(defn- mana-skill-bonus [skills actor]
+  (let [pass (filter #(not (:active? %)) skills)]
+    (reduce + (map #(skill-mana % actor) skills))))
+
+(defn new-player [name race clazz]
+  (let [r (race *races*)
+	c (clazz *classes*)
+	skills (vec (map #(% *skills*) (:skills c)))
+	health (add-race-bonus :health r (* 5 (:health c)))
+	magic (add-race-bonus :magic r (* 5 (:magic c)))
+	life (add-race-bonus :life r (+ 20 (* 2 health)))
+	mana (add-race-bonus :mana r (* 2 magic))
+	player (new Player name r (atom c)
+		    (atom (add-race-bonus :strength r (* 5 (:strength c))))
+		    (atom (add-race-bonus :agility r (* 5 (:agility c))))
+		    (atom health)
+		    (atom magic)
+		    (atom skills)
+		    (atom 0) ;exp
+		    (atom life)
+		    (atom life) ;max life
+		    (atom mana)
+		    (atom mana) ;max mana
+		    (atom 1) ; level
+		    (atom []) ;equip
+		    (atom []) ;bag
+		    (atom []))] ;effects
+    (swap! (:life player) + (life-skill-bonus skills player))
+    (swap! (:mana player) + (mana-skill-bonus skills player))
+    player))

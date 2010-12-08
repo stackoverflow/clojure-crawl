@@ -1,50 +1,9 @@
 (ns clojure-crawl.game
-  (:use clojure-crawl.races
-	clojure-crawl.skills
-	clojure-crawl.classes
-	clojure-crawl.actors
-	clojure-crawl.utils)
-  (:import (clojure-crawl.actors Player))
-  (:require [clojure [string :as string]]))
+  (:use clojure-crawl.utils))
 
-(defn- add-race-bonus [item race value]
-  (+ (item (:effect race)) value))
+(defrecord Game [player dungeon current-level current-room])
 
-(defn- life-skill-bonus [skills actor]
-  (let [pass (filter #(not (:active? %)) skills)]
-    (reduce + (map #(skill-life % actor) skills))))
-
-(defn- mana-skill-bonus [skills actor]
-  (let [pass (filter #(not (:active? %)) skills)]
-    (reduce + (map #(skill-mana % actor) skills))))
-
-(defn new-player [name race clazz]
-  (let [r (race *races*)
-	c (clazz *classes*)
-	skills (vec (map #(% *skills*) (:skills c)))
-	health (add-race-bonus :health r (* 5 (:health c)))
-	magic (add-race-bonus :magic r (* 5 (:magic c)))
-	life (add-race-bonus :life r (+ 20 (* 2 health)))
-	mana (add-race-bonus :mana r (* 2 magic))
-	player (new Player name r (atom c)
-		    (atom (add-race-bonus :strength r (* 5 (:strength c))))
-		    (atom (add-race-bonus :agility r (* 5 (:agility c))))
-		    (atom health)
-		    (atom magic)
-		    (atom skills)
-		    (atom 0) ;exp
-		    (atom life)
-		    (atom life) ;max life
-		    (atom mana)
-		    (atom mana) ;max mana
-		    (atom 1) ; level
-		    (atom []) ;equip
-		    (atom []) ;bag
-		    (atom []))] ;effects
-    (swap! (:life player) + (life-skill-bonus skills player))
-    (swap! (:mana player) + (mana-skill-bonus skills player))
-    player))
-
+;; helpers
 (defn show-player [player]
   (str "===== " (:name player) " =====\n"
        "race: " (:name (:race player)) "\n"
@@ -65,9 +24,6 @@
 	(= target :self)
 	"self"
 	:default "-"))
-
-(defn- key->name [key]
-  (string/capitalize (subs (str key) 1)))
 
 (defn- passive-skill-desc->str [desc]
   (let [f (fn [[k v]]
