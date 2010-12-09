@@ -4,10 +4,13 @@
 (def *xp-table*
      (for [x (range 1 100)] (* x x 10)))
 
-(defn leveled? [player]
+(defn to-next-level [player]
   (let [xp @(:exp player)
 	level @(:level player)]
-    (>= xp (nth *xp-table* (dec level)))))
+    (- (nth *xp-table* (dec level)) xp)))
+
+(defn leveled? [player]
+  (<= (to-next-level player) 0))
 
 (defn level-up [player]
   (let [clazz @(:clazz player)]
