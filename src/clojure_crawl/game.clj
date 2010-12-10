@@ -29,14 +29,6 @@
   (set-current-room [game current-room]
 	      (reset! (:current-room game) current-room)))
 
-(defn start-game [pname race clazz]
-  (let [player (new-player pname (name->key race) (name->key clazz))
-	level (gamemap/enter-dungeon)]
-    (set-player game player)
-    (set-dungeon game gamemap/dungeon)
-    (set-current-level game level)
-    (set-current-room game gamemap/current-room)))
-
 ;; create player
 
 (defn- add-race-bonus [item race value]
@@ -76,6 +68,15 @@
     (swap! (:life player) + (life-skill-bonus skills player))
     (swap! (:mana player) + (mana-skill-bonus skills player))
     player))
+
+;; start game
+(defn start-game [pname race clazz]
+  (let [player (new-player pname (name->key race) (name->key clazz))
+	level (gamemap/enter-dungeon)]
+    (set-player game player)
+    (set-dungeon game gamemap/dungeon)
+    (set-current-level game level)
+    (set-current-room game gamemap/current-room)))
 
 ;; helpers
 (defn show-player [player]
@@ -127,7 +128,7 @@
 (defn show-skill [name player]
   (let [skill (first (filter #(= name (:name %)) @(:skills player)))
 	desc (describe-skill skill player)]
-    (str "===== " (:name skill) " =====\n"
+    (str (:name skill) "\n"
 	 (:description skill) "\n"
 	 (if (:active? skill)
 	   (str "level: " @(:level skill) "\n"))
