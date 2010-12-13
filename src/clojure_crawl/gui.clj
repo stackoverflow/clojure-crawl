@@ -5,7 +5,8 @@
 			JScrollPane ListSelectionModel
 			BorderFactory JTabbedPane)
 	   (javax.swing.event ListSelectionListener
-			      ListSelectionEvent)
+			      ListSelectionEvent
+			      ChangeListener ChangeEvent)
 	   (javax.swing.border TitledBorder)
 	   (java.awt.event ActionListener ActionEvent)
 	   (java.awt Dimension Color Component))
@@ -13,7 +14,8 @@
 	clojure-crawl.races
 	clojure-crawl.classes
 	clojure-crawl.game
-	clojure-crawl.utils))
+	clojure-crawl.utils
+	clojure-crawl.mapcanvas))
 
 ;(set! *warn-on-reflection* true)
 
@@ -60,6 +62,11 @@
 (defn- list-selection-listener [f]
   (proxy [ListSelectionListener] []
     (valueChanged [^ListSelectionEvent e]
+		  (f e))))
+
+(defn- change-listener [f]
+  (proxy [ChangeListener] []
+    (stateChanged [^ChangeEvent e]
 		  (f e))))
 
 (defn- set-bounds [items]
@@ -123,13 +130,13 @@
 	sequ (partition 2 (interleave labels values))
 	border (BorderFactory/createTitledBorder "Player")]
     (doto panel
-      (. setSize (new Dimension 200 360))
+      (. setSize (new Dimension 250 360))
       (. setBorder border)
       (. setLayout nil))
     (doseq [[^String l ^JPanel v] sequ]
       (let [^JLabel label (new JLabel l)]
-	(. label setBounds 10 @y 70 18)
-	(. v setBounds 100 @y 80 18)
+	(. label setBounds 10 @y 80 18)
+	(. v setBounds 110 @y 120 18)
 	(. panel add label)
 	(. panel add v)
 	(swap! y + 19)))
@@ -139,9 +146,18 @@
   (let [playerpanel (create-playerpanel)
 	skills (create-all-skills-panel)
 	playertab (new JPanel)
-	gametab (new JPanel)]
+	gametab (new JPanel)
+	mapcanvas (create-map-canvas)]
     (set-gui-player)
     (. skills setLocation 0 380)
+    (. mapcanvas setLocation 300 10)
+    (. gamepanel addChangeListener
+       (change-listener (fn [e]
+			  (let [pane (. e getSource)
+				name (. pane getTitleAt (. pane getSelectedIndex))]
+			    (if (= name "Game")
+			      (. gametab add playerpanel)
+			      (. playertab add playerpanel))))))
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
@@ -149,13 +165,11 @@
     (doto gametab
       (. setSize 800 800)
       (. setLayout nil)
-      (. add playerpanel))
+      (. add mapcanvas))
     (doto playertab
       (. setSize 800 800)
       (. setLayout nil)
-      (. add playerpanel)
       (. add skills))))
-  
 
 (defn- goto-game [pname race clazz]
   (start-game pname race clazz)

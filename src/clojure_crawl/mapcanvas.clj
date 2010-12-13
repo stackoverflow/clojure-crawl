@@ -1,2 +1,93 @@
-(ns clojure-crawl.mapcanvas)
+(ns clojure-crawl.mapcanvas
+  (:use clojure-crawl.map)
+  (:import (javax.swing JComponent)
+	   (java.awt Graphics Color Font FontMetrics)))
 
+(set! *warn-on-reflection* true)
+
+(def ^{:private true} sep 3)
+
+(def ^{:private true} treasure-color (new Color 180 180 0))
+
+(def ^{:private true} font (new Font "SanSerif" Font/PLAIN 12))
+
+(defn- ^Integer height [level asc]
+  (int (+ (* level sep) (* level asc))))
+
+(defn- gen-legend [^Graphics g ^FontMetrics fm asc]
+  (let [words ["Legend: player - " " enemy - " " treasure - "
+	       " shrine - " " up - " " down - "]
+	colors [Color/blue Color/red treasure-color
+		Color/green Color/magenta Color/gray]
+	h (height 2 asc)]
+    (loop [w words, x 5, c colors]
+      (when w
+	(let [^String word (first w)
+	      ^Color color (first c)
+	      size (. fm stringWidth word)]
+	  (. g setColor Color/white)
+	  (. g drawString word x h)
+	  (. g setColor color)
+	  (. g fillRect (+ x size sep) (- h 8) 10 10)
+	  (recur (next w) (+ x size sep sep 10) (next c)))))))
+
+(defn- draw-map [^Graphics g w h]
+  (. g setFont font)
+  (let [level @current-level
+	fm (. g getFontMetrics)
+	asc (. fm getAscent)
+	wh 40
+	startx 5
+	starty 350
+	gap 5]
+    (. g setColor Color/black)
+    (. g fillRect 0 0 w, h)
+    (. g setColor Color/white)
+    (. g drawString (str "Level: " (:depth level)) 5 (height 1 asc))
+    (gen-legend g fm asc)
+    (. g setColor Color/white)
+    (loop [rooms (:rooms @current-level)]
+      (when rooms
+	(let [r (first rooms)
+	      pos (:pos r)
+	      postmp (mod pos size)
+	      posrel (if (= postmp 0) size postmp)
+	      x (+ (* posrel (+ wh gap)) startx)
+	      y (- starty (* (+ wh gap) (int (/ (dec pos) size))))]
+	  (when true
+	    (. g fillRect x y wh wh)
+	    (when (= pos (:pos @current-room))
+	      (. g setColor Color/blue)
+	      (. g fillRect (+ x (/ wh 2) -5) (+ y (/ wh 2) -5) 10 10))
+	    (when (:enemy r)
+	      (. g setColor Color/red)
+	      (. g fillRect x y 10 10))
+	    (when (:treasure r)
+	      (. g setColor treasure-color)
+	      (. g fillRect (+ x (- wh 10)) y 10 10))
+	    (when (:up? r)
+	      (. g setColor Color/magenta)
+	      (. g fillRect x (+ y (- wh 10)) 10 10))
+	    (when (:down? r)
+	      (. g setColor Color/gray)
+	      (. g fillRect x (+ y (- wh 10)) 10 10))
+	    (when (:shrine? r)
+	      (. g setColor Color/green)
+	      (. g fillRect x (+ y (- wh 10)) 10 10))
+	    (. g setColor Color/white)
+	    (when (:right r)
+	      (. g fillRect (+ x wh) (+ y 12) gap (/ wh 3)))
+	    (when (:front r)
+	      (. g fillRect (+ x 12) (- y wh) (/ wh 3) gap)))
+	  (recur (next rooms)))))))
+	  
+
+(defn ^JComponent create-map-canvas []
+  (let [c (proxy [JComponent] []
+	    (paintComponent [^Graphics g]
+			    (let [w (. ^JComponent this getWidth)
+				  h (. ^JComponent this getHeight)]
+			      (proxy-super paintComponent g)
+			      (draw-map g w h))))]
+    (. c setSize 450 400)
+    c))

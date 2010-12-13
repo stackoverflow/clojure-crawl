@@ -2,7 +2,9 @@
   (:use clojure.set
 	clojure-crawl.enemies))
 
-(def *enemy-chance* 25)
+(def size 8)
+
+(def *enemy-chance* 45)
 
 (def current-room (atom nil))
 
@@ -12,10 +14,14 @@
 
 (defrecord Level [depth rooms])
 
-(defrecord Room [right left front rear shrine? up? down? enemy treasure pos])
+(defrecord Room [right left front rear shrine? up? down? enemy treasure pos visited])
+
+
+(defn- visit-current-room []
+  (reset! (:visited @current-room) true))
 
 (defn- probability-result [n]
-  (< n (inc (rand-int 100))))
+  (> n (inc (rand-int 100))))
 
 (defn- follow-graph
   "An algorithm to calculate if this level map is traversable"
@@ -25,12 +31,12 @@
       acc ;the end
       (let [nr (inc n)
 	    nl (dec n)
-	    nu (+ n 7)
-	    nd (- n 7)
-	    rbarrier (= (mod n 7) 0)
-	    lbarrier (= (mod n 7) 1)
-	    ubarrier (>= n 50)
-	    dbarrier (<= n 7)
+	    nu (+ n size)
+	    nd (- n size)
+	    rbarrier (= (mod n size) 0)
+	    lbarrier (= (mod n size) 1)
+	    ubarrier (>= n (inc (* size (dec size))))
+	    dbarrier (<= n size)
 	    r (when (and (not rbarrier)
 			 (contains? level nr)
 			 (not (contains? visited nr)))
@@ -59,9 +65,9 @@
     (= (count level) (count res))))
 
 (defn- gen-level-structure []
-  (let [level (atom (set (range 1 57)))
+  (let [level (atom (set (range 1 (inc (* size size)))))
 	total (atom 0)]
-    (while (< @total 20)
+    (while (< @total 25)
       (let [choice (rand-nth (vec @level))]
 	(when (graph-complete? (disj @level choice))
 	  (swap! level disj choice)
@@ -79,17 +85,20 @@
 	      up? (= start n)
 	      down? (= end n)
 	      shrine? (= shrine n)
-	      enemy-chance (probability-result *enemy-chance*)
+	      enemy-chance (if (not up?)
+			     (probability-result *enemy-chance*))
 	      enemy (if enemy-chance
 		      (random-enemy depth)
 		      nil)
-	      rigth (and (not= (mod n 7) 0)
+	      rigth (and (not= (mod n size) 0)
 			 (contains? stru (inc n)))
-	      left (and (not= (mod n 7) 1)
+	      left (and (not= (mod n size) 1)
 			(contains? stru (dec n)))
-	      front (contains? stru (+ n 7))
-	      rear (contains? stru (- n 7))
-	      room (new Room rigth left front rear shrine? up? down? enemy nil n)]
+	      front (contains? stru (+ n size))
+	      rear (contains? stru (- n size))
+	      treasure true
+	      room (new Room rigth left front rear shrine? up? down?
+			enemy treasure n (atom false))]
 	  (recur (next ns) (conj rooms room)))
 	rooms))))
 
@@ -98,11 +107,12 @@
     (swap! dungeon conj level)
     (reset! current-level level)
     (reset! current-room (first (filter :up? (:rooms level))))
+    (visit-current-room)
     level))
 
 (defn enter-dungeon []
   (let [depth (inc (count @dungeon))]
-    (if (> depth 0)
+    (if (> depth 1)
       false
       (set-new-level depth))))
 
@@ -115,6 +125,7 @@
 	(let [level (nth @dungeon cdepth)]
 	  (reset! current-level level)
 	  (reset! current-room (first (filter :up? (:rooms level))))
+	  (visit-current-room)
 	  level)))))
 
 (defn ascend []
@@ -125,13 +136,42 @@
 	(let [level (nth @dungeon (- depth 2))]
 	  (reset! current-level level)
 	  (reset! current-room (first (filter :up? (:rooms level))))
+	  (visit-current-room)
 	  level)))))
+
+(defn left []
+  (when (and @current-room (:left @current-room))
+    (let [pos (dec (:pos @current-room))
+	  room (first (filter #(= pos (:pos %)) (:rooms @current-level)))]
+      (reset! current-room room)
+      (visit-current-room))))
+
+(defn right []
+  (when (and @current-room (:right @current-room))
+    (let [pos (inc (:pos @current-room))
+	  room (first (filter #(= pos (:pos %)) (:rooms @current-level)))]
+      (reset! current-room room)
+      (visit-current-room))))
+
+(defn front []
+  (when (and @current-room (:front @current-room))
+    (let [pos (+ (:pos @current-room) size)
+	  room (first (filter #(= pos (:pos %)) (:rooms @current-level)))]
+      (reset! current-room room)
+      (visit-current-room))))
+
+(defn rear []
+  (when (and @current-room (:rear @current-room))
+    (let [pos (- (:pos @current-room) size)
+	  room (first (filter #(= pos (:pos %)) (:rooms @current-level)))]
+      (reset! current-room room)
+      (visit-current-room))))
 
 ; helper
 (defn- show-level [level]
-  (doseq [x (range 1 57)]
+  (doseq [x (range 1 (inc (* size size)))]
     (if (contains? level x)
       (print "x ")
       (print ". "))
-    (when (= (mod x 7) 0)
+    (when (= (mod x size) 0)
       (print "\n"))))
