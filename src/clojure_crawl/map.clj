@@ -1,6 +1,7 @@
 (ns clojure-crawl.map
   (:use clojure.set
-	clojure-crawl.enemies))
+	clojure-crawl.enemies
+	clojure-crawl.utils))
 
 (def size 8)
 
@@ -19,9 +20,6 @@
 
 (defn- visit-current-room []
   (reset! (:visited @current-room) true))
-
-(defn- probability-result [n]
-  (> n (inc (rand-int 100))))
 
 (defn- follow-graph
   "An algorithm to calculate if this level map is traversable"
@@ -78,7 +76,9 @@
   (let [stru (gen-level-structure)
 	start (rand-nth (vec stru))
 	end (rand-nth (vec (disj stru start)))
-	shrine (rand-nth (vec (disj stru start end)))]
+	shrine (if (= (mod depth 5) 0)
+		 (rand-nth (vec (disj stru start end)))
+		 nil)]
     (loop [ns stru, rooms []]
       (if ns
 	(let [n (first ns)

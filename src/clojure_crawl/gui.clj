@@ -3,19 +3,16 @@
 			JMenuItem JOptionPane JPanel JLabel
 			JList JTextField JTextArea JButton
 			JScrollPane ListSelectionModel
-			BorderFactory JTabbedPane)
-	   (javax.swing.event ListSelectionListener
-			      ListSelectionEvent
-			      ChangeListener ChangeEvent)
+			BorderFactory JTabbedPane JComponent)
 	   (javax.swing.border TitledBorder)
-	   (java.awt.event ActionListener ActionEvent)
-	   (java.awt Dimension Color Component))
+	   (java.awt Dimension Color))
   (:use clojure-crawl.actors
 	clojure-crawl.races
 	clojure-crawl.classes
 	clojure-crawl.game
 	clojure-crawl.utils
-	clojure-crawl.mapcanvas))
+	clojure-crawl.mapcanvas
+	clojure-crawl.guiutils))
 
 ;(set! *warn-on-reflection* true)
 
@@ -31,9 +28,11 @@
 ;; variables
 (def ^JFrame gameframe (new JFrame "Clojure Crawler"))
 
-(def ^JPanel gamepanel (new JTabbedPane))
+(def ^JTabbedPane gamepanel (new JTabbedPane))
 
 (def ^JPanel newpanel (new JPanel))
+
+(def ^JComponent mapcanvas (create-map-canvas))
 
 (def gui-player (new Gui-player (new JLabel) (new JLabel) (new JLabel)
 		     (new JLabel) (new JLabel) (new JLabel)
@@ -51,29 +50,14 @@
 		       (new JLabel)))
 
 ;; helpers
-(defn- show-message [msg title]
-  (JOptionPane/showMessageDialog gameframe msg title JOptionPane/INFORMATION_MESSAGE))
+(defn- repaint-map []
+  (. mapcanvas repaint))
 
-(defn- action-listener [f]
-  (proxy [ActionListener] []
-    (actionPerformed [^ActionEvent e]
-		     (f e))))
-
-(defn- list-selection-listener [f]
-  (proxy [ListSelectionListener] []
-    (valueChanged [^ListSelectionEvent e]
-		  (f e))))
-
-(defn- change-listener [f]
-  (proxy [ChangeListener] []
-    (stateChanged [^ChangeEvent e]
-		  (f e))))
-
-(defn- set-bounds [items]
-  (when (even? (count items))
-    (let [s (vec (partition 2 items))]
-      (doseq [[^Component c [x y w h]] s]
-	(. c setBounds x y w h)))))
+(defn- gui-go [side]
+  (if (can-go? side)
+    (do (go side)
+	(repaint-map))
+    (show-message gameframe (str "Cannot go " (key->name side)) "Error")))
 
 ;; functions
 (defn- set-gui-player []
@@ -110,9 +94,8 @@
 		 area [110 20 200 210]])
     (. tarea setEditable false)
     (. jlist addListSelectionListener
-       (list-selection-listener (fn [e]
-				  (let [name (. jlist getSelectedValue)]
-				    (. tarea setText (show-skill name @(:player game)))))))
+       (list-selection-listener (let [name (. jlist getSelectedValue)]
+				  (. tarea setText (show-skill name @(:player game))))))
     (doto panel
       (. setSize (new Dimension 320 245))
       (. setBorder border)
@@ -147,25 +130,35 @@
 	skills (create-all-skills-panel)
 	playertab (new JPanel)
 	gametab (new JPanel)
-	mapcanvas (create-map-canvas)]
+	^JButton front (new JButton "Front")
+	^JButton rear (new JButton "Rear")
+	^JButton left (new JButton "Left")
+	^JButton right (new JButton "Right")]
     (set-gui-player)
     (. skills setLocation 0 380)
     (. mapcanvas setLocation 300 10)
     (. gamepanel addChangeListener
-       (change-listener (fn [e]
-			  (let [pane (. e getSource)
-				name (. pane getTitleAt (. pane getSelectedIndex))]
-			    (if (= name "Game")
-			      (. gametab add playerpanel)
-			      (. playertab add playerpanel))))))
+       (change-listener (let [pane (. e getSource)
+			      name (. pane getTitleAt (. pane getSelectedIndex))]
+			  (if (= name "Game")
+			    (. gametab add playerpanel)
+			    (. playertab add playerpanel)))))
+    (set-bounds [front [480 420 70 25]
+		 rear [480 450 70 25]
+		 left [400 450 70 25]
+		 right [560 450 70 25]])
+    (add-action-listener front (gui-go :front))
+    (add-action-listener rear (gui-go :rear))
+    (add-action-listener left (gui-go :left))
+    (add-action-listener right (gui-go :right))
+    (add-all gametab [front rear left right mapcanvas])
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
       (. setBounds 0 20 800 800))
     (doto gametab
       (. setSize 800 800)
-      (. setLayout nil)
-      (. add mapcanvas))
+      (. setLayout nil))
     (doto playertab
       (. setSize 800 800)
       (. setLayout nil)
@@ -191,10 +184,10 @@
     (. helpmenu add aboutitem)
     (. aboutitem addActionListener
        (action-listener
-	(fn [e] (show-message "Clojure Crawler - a dungeon crawler made in clojure.
+	(show-message gameframe "Clojure Crawler - a dungeon crawler made in clojure.
 Source released under Eclipse License.
 http://github.com/stackoverflow/clojure-crawl"
-			      "Clojure Crawler"))))
+		      "Clojure Crawler")))
     (. mainmenu add gamemenu)
     (. mainmenu add helpmenu)
     (. gameframe setJMenuBar mainmenu)))
@@ -233,41 +226,29 @@ http://github.com/stackoverflow/clojure-crawl"
 		 classdescsc [350 340 350 280]])
     ;; listeners
     (. racelist addListSelectionListener
-       (list-selection-listener (fn [e]
-				  (let [name (. racelist getSelectedValue)]
-				    (. racedesc setText (show-race name))))))
+       (list-selection-listener (let [name (. racelist getSelectedValue)]
+				  (. racedesc setText (show-race name)))))
     (. classlist addListSelectionListener
-       (list-selection-listener (fn [e]
-				  (let [name (. classlist getSelectedValue)]
-				    (. classdesc setText (show-class name))))))
+       (list-selection-listener (let [name (. classlist getSelectedValue)]
+				  (. classdesc setText (show-class name)))))
     (. newbutton addActionListener
-       (action-listener (fn [e]
-			  (let [^String name (. namefield getText)
-				^String race (. racelist getSelectedValue)
-				^String clazz (. classlist getSelectedValue)]
-			    (if (. name isEmpty)
-			      (show-message "Please insert a name" "Error")
-			      (if (or (not race)
-				      (. race isEmpty))
-				(show-message "Please choose a race" "Error")
-				(if (or (not clazz)
-					(. clazz isEmpty))
-				  (show-message "Please choose a class" "Error")
-				  (goto-game name race clazz))))))))
+       (action-listener (let [^String name (. namefield getText)
+			      ^String race (. racelist getSelectedValue)
+			      ^String clazz (. classlist getSelectedValue)]
+			  (if (. name isEmpty)
+			    (show-message "Please insert a name" "Error")
+			    (if (or (not race)
+				    (. race isEmpty))
+			      (show-message "Please choose a race" "Error")
+			      (if (or (not clazz)
+				      (. clazz isEmpty))
+				(show-message "Please choose a class" "Error")
+				(goto-game name race clazz)))))))
+    (. newpanel setLayout nil)
     ;; add
-    (doto newpanel
-      (. setLayout nil)
-      (. add racelabel)
-      (. add racedesclabel)
-      (. add classlabel)
-      (. add classdesclabel)
-      (. add namelabel)
-      (. add newbutton)
-      (. add racelistsc)
-      (. add racedescsc)
-      (. add classlistsc)
-      (. add namefield)
-      (. add classdescsc))))
+    (add-all newpanel [racelabel racedesclabel classlabel classdesclabel
+		       namelabel newbutton racelistsc racedescsc
+		       classlistsc namefield classdescsc])))
 
 (defn init-gui []
   (init-menu)

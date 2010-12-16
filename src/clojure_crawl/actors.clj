@@ -26,7 +26,7 @@
 
 (defrecord Player [name race clazz strength agility health magic skills exp life max-life mana max-mana level equip bag effects])
 
-(defrecord Enemy [name description strength agility health magic skills life max-life mana max-mana level drop])
+(defrecord Enemy [name description strength agility health magic skills life max-life mana max-mana level drop aware])
 
 (defprotocol Actor
   (strength [actor])
@@ -42,7 +42,8 @@
   (evade [actor])
   (life-regen [actor])
   (mana-regen [actor])
-  (hide [actor]))
+  (hide [actor])
+  (dead? [actor]))
 
 (defprotocol Descriptable
   (describe [stuff]))
@@ -120,7 +121,9 @@
 	      (* a 0.08)))
   (evade [enemy]
 	 (let [a (:agility enemy)]
-	   (* a 0.06))))
+	   (* a 0.06)))
+  (dead? [enemy]
+	 (<= @(:life enemy) 0)))
 
 ;;; player helper functions
 
@@ -236,4 +239,5 @@
 	      (let [bonus (all-bonus :mana-regen player)
 		    level @(:level player)]
 		(/ (+ level bonus) 20)))
-  (hide [player] (all-bonus :hide player)))
+  (hide [player] (all-bonus :hide player))
+  (dead? [player] (<= @(:life player) 0)))

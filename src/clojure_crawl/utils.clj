@@ -31,3 +31,6 @@
 
 (defn name->key [name]
   (keyword (. name toLowerCase)))
+
+(defn probability-result [n]
+  (> n (inc (rand-int 100))))

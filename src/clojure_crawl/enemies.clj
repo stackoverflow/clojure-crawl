@@ -33,7 +33,7 @@
 		(* 10 basema))]
     (new Enemy (:name kind) (:description kind) st ag he ma
 	 (vec (map #(% *skills*) (:skills kind)))
-	 (atom life) life (atom mana) mana level (:drop kind))))
+	 (atom life) life (atom mana) mana level (:drop kind) (atom false))))
 
 (defn random-enemy [level]
   (let [k (rand-nth (keys *enemies*))]

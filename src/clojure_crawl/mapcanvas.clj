@@ -36,7 +36,7 @@
   (let [level @current-level
 	fm (. g getFontMetrics)
 	asc (. fm getAscent)
-	wh 40
+	wh 35
 	startx 5
 	starty 350
 	gap 5]
@@ -78,9 +78,8 @@
 	    (when (:right r)
 	      (. g fillRect (+ x wh) (+ y 12) gap (/ wh 3)))
 	    (when (:front r)
-	      (. g fillRect (+ x 12) (- y wh) (/ wh 3) gap)))
+	      (. g fillRect (+ x 12) (- y gap) (/ wh 3) gap)))
 	  (recur (next rooms)))))))
-	  
 
 (defn ^JComponent create-map-canvas []
   (let [c (proxy [JComponent] []

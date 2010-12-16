@@ -69,7 +69,7 @@
     (swap! (:mana player) + (mana-skill-bonus skills player))
     player))
 
-;; start game
+;; game
 (defn start-game [pname race clazz]
   (let [player (new-player pname (name->key race) (name->key clazz))
 	level (gamemap/enter-dungeon)]
@@ -77,6 +77,27 @@
     (set-dungeon game gamemap/dungeon)
     (set-current-level game level)
     (set-current-room game gamemap/current-room)))
+
+(defn can-go? [side]
+  (let [room @gamemap/current-room
+	enemy (:enemy room)]
+    (if (side room)
+      (if enemy
+	(if (or (dead? enemy)
+		(not (:aware enemy)))
+	  true
+	  false)
+	true)
+      false)))
+
+(defn go [side]
+  (when (can-go? side)
+    (gamemap/left)
+    (reset! (:current-room game) @gamemap/current-room)
+    (when-let [enemy (:enemy @gamemap/current-room)]
+      (let [p (probability-result (hide @(:player game)))]
+	(when-not p
+	  (reset! (:aware enemy) true))))))
 
 ;; helpers
 (defn show-player [player]
