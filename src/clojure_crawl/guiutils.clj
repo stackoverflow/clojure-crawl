@@ -1,5 +1,5 @@
 (ns clojure-crawl.guiutils
-  (:import (javax.swing JOptionPane JComponent)
+  (:import (javax.swing JOptionPane JComponent JLabel)
 	   (java.awt.event ActionListener ActionEvent)
 	   (javax.swing.event ListSelectionListener
 			      ListSelectionEvent
@@ -33,6 +33,12 @@
       (doseq [[^Component c [x y w h]] s]
 	(. c setBounds x y w h)))))
 
-(defn add-all [^JComponent component coll]
-  (doseq [c coll]
+(defn add-all [^JComponent component & args]
+  (doseq [c args]
     (. component add c)))
+
+(defn set-texts [coll]
+  (when (even? (count coll))
+    (let [s (partition 2 coll)]
+      (doseq [[^JLabel l ^String text] s]
+	(. l setText text)))))

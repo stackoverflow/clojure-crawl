@@ -6,17 +6,28 @@
 	clojure-crawl.skills)
   (:import (clojure-crawl.actors Player))
   (:require [clojure [string :as string]]
-	     [clojure-crawl [map :as gamemap]]))
-
-(defrecord Game [player dungeon current-level current-room])
-
-(def game (new Game (atom nil) (atom nil) (atom nil) (atom nil)))
+	    [clojure-crawl [map :as gamemap]]))
 
 (defprotocol IGame
   (set-player [game player])
   (set-dungeon [game dungeon])
   (set-current-level [game current-level])
-  (set-current-room [game current-room]))
+  (set-current-room [game current-room])
+  (player-attack [game])
+  (enemy-attack [game]))
+
+(defn- attack* [att vic]
+  (let [vic-evd? (probability-result (evade vic))
+	att-cri? (probability-result (critical att))
+	defen (defense vic)
+	damage (attack att)]
+    {:damage (if att-cri?
+	       (- (* 2 damage) defen)
+	       (- damage defen))
+     :critical att-cri?
+     :evade vic-evd?}))
+
+(defrecord Game [player dungeon current-level current-room])
 
 (extend-type Game
   IGame
@@ -27,7 +38,25 @@
   (set-current-level [game current-level]
 	      (reset! (:current-level game) current-level))
   (set-current-room [game current-room]
-	      (reset! (:current-room game) current-room)))
+		    (reset! (:current-room game) current-room))
+  (player-attack [game]
+	     (let [player @(:player game)
+		   enemy (:enemy @(:current-room game))]
+	       (when enemy
+		 (let [res (attack* player enemy)]
+		   (when (not (:evade res))
+		     (damage enemy (:damage res)))
+		   res))))
+  (enemy-attack [game]
+	     (let [player @(:player game)
+		   enemy (:enemy @(:current-room game))]
+	       (when enemy
+		 (let [res (attack* enemy player)]
+		   (when (not (:evade res))
+		     (damage player (:damage res)))
+		   res)))))
+
+(def game (new Game (atom nil) (atom nil) (atom nil) (atom nil)))
 
 ;; create player
 
@@ -92,12 +121,27 @@
 
 (defn go [side]
   (when (can-go? side)
-    (gamemap/left)
+    (gamemap/go side)
     (reset! (:current-room game) @gamemap/current-room)
     (when-let [enemy (:enemy @gamemap/current-room)]
       (let [p (probability-result (hide @(:player game)))]
 	(when-not p
 	  (reset! (:aware enemy) true))))))
+
+(defn ascend []
+  (when-let [room @(:current-room game)]
+    (gamemap/ascend)
+    (reset! (:current-room game) @gamemap/current-room)
+    (reset! (:current-level game) @gamemap/current-level)))
+
+(defn descend []
+  (when-let [room @(:current-room game)]
+    (gamemap/descend)
+    (reset! (:current-room game) @gamemap/current-room)
+    (reset! (:current-level game) @gamemap/current-level)))
+
+(defn attack-enemy []
+  (player-attack game))
 
 ;; helpers
 (defn show-player [player]

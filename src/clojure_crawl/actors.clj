@@ -43,7 +43,8 @@
   (life-regen [actor])
   (mana-regen [actor])
   (hide [actor])
-  (dead? [actor]))
+  (dead? [actor])
+  (damage [actor dmg]))
 
 (defprotocol Descriptable
   (describe [stuff]))
@@ -123,7 +124,9 @@
 	 (let [a (:agility enemy)]
 	   (* a 0.06)))
   (dead? [enemy]
-	 (<= @(:life enemy) 0)))
+	 (<= @(:life enemy) 0))
+  (damage [enemy dmg]
+	  (swap! (:life enemy) - dmg)))
 
 ;;; player helper functions
 
@@ -240,4 +243,6 @@
 		    level @(:level player)]
 		(/ (+ level bonus) 20)))
   (hide [player] (all-bonus :hide player))
-  (dead? [player] (<= @(:life player) 0)))
+  (dead? [player] (<= @(:life player) 0))
+  (damage [player dmg]
+	  (swap! (:life player) - dmg)))
