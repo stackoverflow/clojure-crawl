@@ -1,5 +1,6 @@
 (ns clojure-crawl.mapcanvas
-  (:use clojure-crawl.map)
+  (:use clojure-crawl.map
+	clojure-crawl.actors)
   (:import (javax.swing JComponent)
 	   (java.awt Graphics Color Font FontMetrics)))
 
@@ -59,7 +60,8 @@
 	    (when (= pos (:pos @current-room))
 	      (. g setColor Color/blue)
 	      (. g fillRect (+ x (/ wh 2) -5) (+ y (/ wh 2) -5) 10 10))
-	    (when (:enemy r)
+	    (when (and (:enemy r)
+		       (not (dead? (:enemy r))))
 	      (. g setColor Color/red)
 	      (. g fillRect x y 10 10))
 	    (when (:treasure r)

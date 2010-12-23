@@ -17,8 +17,20 @@
   (let [f (new DecimalFormat "0.##")]
     (. (. f format (double n)) (replaceAll "," "\\."))))
 
+(defn pos-num [n]
+  (if (< n 0)
+    0
+    (int n)))
+
 (defn vec->damage [v]
   (str (to-num (first v)) " - " (to-num (second v))))
+
+(defn attack->str [att]
+  (str (when (:critical att)
+	 "Critical Hit! ")
+       (if (:evade att)
+	 "Enemy Evaded "
+	 (str "Caused " (int (:damage att)) " damage"))))
 
 (defn apply-in-vec [f v]
   (vec (map f v)))

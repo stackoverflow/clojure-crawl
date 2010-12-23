@@ -24,7 +24,7 @@
     {:damage (if att-cri?
 	       (- (* 2 damage) defen)
 	       (- damage defen))
-     :critical att-cri?
+     :critical (if vic-evd? false att-cri?)
      :evade vic-evd?}))
 
 (defrecord Game [player dungeon current-level current-room])
@@ -42,7 +42,8 @@
   (player-attack [game]
 	     (let [player @(:player game)
 		   enemy (:enemy @(:current-room game))]
-	       (when enemy
+	       (when (and enemy
+			  (not (dead? enemy)))
 		 (let [res (attack* player enemy)]
 		   (when (not (:evade res))
 		     (damage enemy (:damage res)))
@@ -50,7 +51,8 @@
   (enemy-attack [game]
 	     (let [player @(:player game)
 		   enemy (:enemy @(:current-room game))]
-	       (when enemy
+	       (when (and enemy
+			  (not (dead? enemy)))
 		 (let [res (attack* enemy player)]
 		   (when (not (:evade res))
 		     (damage player (:damage res)))
@@ -142,6 +144,9 @@
 
 (defn attack-enemy []
   (player-attack game))
+
+(defn attack-player []
+  (enemy-attack game))
 
 ;; helpers
 (defn show-player [player]

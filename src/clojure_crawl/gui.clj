@@ -34,6 +34,8 @@
 
 (def ^JComponent mapcanvas (create-map-canvas))
 
+(def ^JLabel statuslabel (new JLabel "" JLabel/RIGHT))
+
 (def gui-player (new Gui-player (new JLabel) (new JLabel) (new JLabel)
 		     (new JLabel) (new JLabel) (new JLabel)
 		     (new JLabel) (new JLabel) (new JLabel) (new JLabel) (new JLabel)
@@ -54,13 +56,14 @@
 (defn- repaint-map []
   (. mapcanvas repaint))
 
+(defn- status-print [s]
+  (. statuslabel setText s))
+
 (defn- gui-go [side]
   (if (game/can-go? side)
     (do (game/go side)
 	(repaint-map))
-    (show-message gameframe (str "Cannot go " (key->name side)) "Error")))
-
-
+    (status-print (str "Cannot go " (key->name side)))))
 
 ;; functions
 (defn- set-gui-player []
@@ -76,8 +79,8 @@
                 (:health gui-player) (str (health player))
                 (:magic gui-player) (str (magic player))
                 (:exp gui-player) (str @(:exp player))
-                (:life gui-player) (str @(:life player) "/" (max-life player))
-                (:mana gui-player) (str @(:mana player) "/" (max-mana player))
+                (:life gui-player) (str (pos-num @(:life player)) "/" (max-life player))
+                (:mana gui-player) (str (pos-num @(:mana player)) "/" (max-mana player))
                 (:level gui-player) (str @(:level player))
                 (:attack gui-player) (vec->damage (base-attack player))
                 (:defense gui-player) (str (to-num (defense player)))
@@ -89,24 +92,44 @@
     (. list setListData (object-array (map :name skills)))
     (. act-list setListData (object-array (map :name (filter :active? skills))))))
 
+(defn- reset-gui-enemy []
+  (doseq [ks (keys gui-enemy)]
+    (. (ks gui-enemy) setText "")))
+
 (defn- set-gui-enemy []
   (when-let [enemy (:enemy @(:current-room game/game))]
-    (set-texts [(:name gui-enemy) (:name enemy)
-                (:description gui-enemy) (:description enemy)
-                (:strength gui-enemy) (str (strength enemy))
-                (:agility gui-enemy) (str (agility enemy))
-                (:health gui-enemy) (str (health enemy))
-                (:magic gui-enemy) (str (magic enemy))
-                (:life gui-enemy) (str @(:life enemy) "/" (max-life enemy))
-                (:mana gui-enemy) (str @(:mana enemy) "/" (max-mana enemy))
-                (:level gui-enemy) (str (:level enemy))
-                (:attack gui-enemy) (vec->damage (base-attack enemy))
-                (:defense gui-enemy) (str (to-num (defense enemy)))
-                (:critical gui-enemy) (str (to-num (critical enemy)) "%")
-                (:evade gui-enemy) (str (to-num (evade enemy)) "%")
-                (:aware gui-enemy) (str @(:aware enemy))
-                (:skills gui-enemy) (str (vec (map :name (:skills enemy))))])
-    (. gameframe repaint)))
+    (if (dead? enemy)
+      (reset-gui-enemy)
+      (do
+	(set-texts [(:name gui-enemy) (:name enemy)
+		    (:description gui-enemy) (:description enemy)
+		    (:strength gui-enemy) (str (strength enemy))
+		    (:agility gui-enemy) (str (agility enemy))
+		    (:health gui-enemy) (str (health enemy))
+		    (:magic gui-enemy) (str (magic enemy))
+		    (:life gui-enemy) (str (pos-num @(:life enemy)) "/" (max-life enemy))
+		    (:mana gui-enemy) (str (pos-num @(:mana enemy)) "/" (max-mana enemy))
+		    (:level gui-enemy) (str (:level enemy))
+		    (:attack gui-enemy) (vec->damage (base-attack enemy))
+		    (:defense gui-enemy) (str (to-num (defense enemy)))
+		    (:critical gui-enemy) (str (to-num (critical enemy)) "%")
+		    (:evade gui-enemy) (str (to-num (evade enemy)) "%")
+		    (:aware gui-enemy) (str @(:aware enemy))
+		    (:skills gui-enemy) (str (vec (map :name (:skills enemy))))])
+	(. gameframe repaint)))))
+
+(defn- gui-attack [player?]
+  (if player?
+    (let [res (game/attack-enemy)]
+      (if res
+	(status-print (attack->str res))
+	(status-print "No enemy to attack"))
+      (set-gui-enemy)
+      (repaint-map))
+    (let [res (game/attack-player)]
+      (status-print (attack->str res))
+      (set-gui-enemy)
+      (repaint-map))))
 
 (defn- ^JPanel create-all-skills-panel []
   (let [^JPanel panel (new JPanel)
@@ -159,7 +182,7 @@
         sequ (partition 2 (interleave labels values))
         border (BorderFactory/createTitledBorder "Enemy")]
     (doto panel
-      (. setSize (new Dimension 250 350))
+      (. setSize (new Dimension 250 320))
       (. setBorder border)
       (. setLayout nil))
     (doseq [[^String l ^JPanel v] sequ]
@@ -178,14 +201,24 @@
         border (BorderFactory/createTitledBorder "Actions")
 	list (:act-skills gui-player)
 	scpane (new JScrollPane list)]
-    (set-bounds [scpane [10 20 140 200]
+    (add-action-listener att (gui-attack true))
+    (set-bounds [scpane [10 20 140 190]
 		 att [160 20 80 25]
 		 usesk [160 50 80 25]])
     (add-all panel usesk att scpane)
     (doto panel
-      (. setSize (new Dimension 250 250))
+      (. setSize (new Dimension 250 220))
       (. setBorder border)
       (. setLayout nil))
+    panel))
+
+(defn- ^JPanel create-statusbar []
+  (let [panel (new JPanel)]
+    (doto panel
+      (. setLayout nil)
+      (. setSize 800 25)
+      (. add statuslabel))
+    (set-bounds [statuslabel [0 0 790 25]])
     panel))
 
 (defn- create-gamepanel []
@@ -220,41 +253,55 @@
                  down [570 420 90 25]])
     (add-action-listener front (do
                                  (gui-go :front)
+				 (status-print "")
                                  (set-gui-enemy)))
     (add-action-listener rear (do
                                 (gui-go :rear)
+				(status-print "")
                                 (set-gui-enemy)))
     (add-action-listener left (do
                                 (gui-go :left)
+				(status-print "")
                                 (set-gui-enemy)))
     (add-action-listener right (do
                                  (gui-go :right)
+				 (status-print "")
                                  (set-gui-enemy)))
     (add-action-listener up (do
 			      (game/ascend)
+			      (status-print "")
 			      (repaint-map)))
     (add-action-listener down (do
 				(game/descend)
+				(status-print "")
 				(repaint-map)))
     (add-all gametab front rear left right up down mapcanvas enemypanel
 	     actionpanel)
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
-      (. setBounds 0 20 800 800))
+      (. setSize 800 730))
     (doto gametab
-      (. setSize 800 800)
-      (. setLayout nil))
-    (doto playertab
-      (. setSize 800 800)
       (. setLayout nil)
+      (. setSize 800 710))
+    (doto playertab
+      (. setLayout nil)
+      (. setSize 800 710)
       (. add skills))))
 
 (defn- goto-game [pname race clazz]
-  (game/start-game pname race clazz)
-  (create-gamepanel)
-  (. gameframe setContentPane gamepanel)
-  (. gameframe invalidate))
+  (let [^JPanel panel (new JPanel)
+	^JPanel status (create-statusbar)]
+    (game/start-game pname race clazz)
+    (create-gamepanel)
+    (set-bounds [panel [0 20 800 780]])
+    (. gamepanel setLocation 0 0)
+    (. status setLocation 0 730)
+    (doto panel
+      (. setLayout nil)
+      (. add gamepanel)
+      (. add status))
+    (. gameframe setContentPane panel)))
 
 (defn- init-menu []
   (let [mainmenu (new JMenuBar)
@@ -317,19 +364,19 @@ http://github.com/stackoverflow/clojure-crawl"
     (. classlist addListSelectionListener
       (list-selection-listener (let [name (. classlist getSelectedValue)]
                                  (. classdesc setText (show-class name)))))
-    (. newbutton addActionListener
-      (action-listener (let [^String name (. namefield getText)
-                             ^String race (. racelist getSelectedValue)
-                             ^String clazz (. classlist getSelectedValue)]
-                         (if (. name isEmpty)
-                           (show-message "Please insert a name" "Error")
-                           (if (or (not race)
-                                 (. race isEmpty))
-                             (show-message "Please choose a race" "Error")
-                             (if (or (not clazz)
-                                   (. clazz isEmpty))
-                               (show-message "Please choose a class" "Error")
-                               (goto-game name race clazz)))))))
+    (add-action-listener newbutton
+			 (let [^String name (. namefield getText)
+			       ^String race (. racelist getSelectedValue)
+			       ^String clazz (. classlist getSelectedValue)]
+			   (if (. name isEmpty)
+			     (show-message "Please insert a name" "Error")
+			     (if (or (not race)
+				     (. race isEmpty))
+			       (show-message "Please choose a race" "Error")
+			       (if (or (not clazz)
+				       (. clazz isEmpty))
+				 (show-message "Please choose a class" "Error")
+				 (goto-game name race clazz))))))
     (. newpanel setLayout nil)
     ;; add
     (add-all newpanel racelabel racedesclabel classlabel classdesclabel

@@ -122,21 +122,21 @@
     (let [cdepth (:depth @current-level)
 	  ddepth (count @dungeon)]
       (if (= cdepth ddepth)
-	(set-new-level cdepth)
+	(set-new-level (inc cdepth))
 	(let [level (nth @dungeon cdepth)]
 	  (reset! current-level level)
-	  (reset! current-room (first (filter :down? (:rooms level))))
+	  (reset! current-room (first (filter :up? (:rooms level))))
 	  (visit-current-room)
 	  level)))))
 
 (defn ascend []
-  (if @(:up? current-room)
+  (if (:up? @current-room)
     (let [depth (:depth @current-level)]
       (if (<= depth 1)
         false
         (let [level (nth @dungeon (- depth 2))]
           (reset! current-level level)
-          (reset! current-room (first (filter :up? (:rooms level))))
+          (reset! current-room (first (filter :down? (:rooms level))))
           (visit-current-room)
           level)))))
 
