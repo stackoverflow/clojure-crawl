@@ -6,7 +6,8 @@
 	clojure-crawl.skills)
   (:import (clojure-crawl.actors Player))
   (:require [clojure [string :as string]]
-	    [clojure-crawl [map :as gamemap]]))
+	    [clojure-crawl [map :as gamemap]]
+	    [clojure-crawl [levels :as levels]]))
 
 (defprotocol IGame
   (set-player [game player])
@@ -20,7 +21,7 @@
   (let [vic-evd? (probability-result (evade vic))
 	att-cri? (probability-result (critical att))
 	defen (defense vic)
-	damage (attack att)]
+	damage (pos-num (attack att))]
     {:damage (if att-cri?
 	       (- (* 2 damage) defen)
 	       (- damage defen))
@@ -142,11 +143,36 @@
     (reset! (:current-room game) @gamemap/current-room)
     (reset! (:current-level game) @gamemap/current-level)))
 
+(defn current-enemy []
+  (:enemy @(:current-room game)))
+
+(defn player []
+  @(:player game))
+
 (defn attack-enemy []
-  (player-attack game))
+  (let [res (player-attack game)
+	enemy (current-enemy)
+	player (player)]
+    (if (dead? enemy)
+      (let [xp (levels/xp-for-level (:level enemy))]
+	(add-xp player xp)
+	(if (levels/leveled? player)
+	  (do
+	    (levels/level-up player)
+	    (assoc res :exp xp :level-up true))
+	  (assoc res :exp xp)))
+      res)))
+	  
 
 (defn attack-player []
   (enemy-attack game))
+
+(defn reset []
+  (reset! (:player game) nil)
+  (reset! (:dungeon game) nil)
+  (reset! (:current-level game) nil)
+  (reset! (:current-room game) nil)
+  (gamemap/reset))
 
 ;; helpers
 (defn show-player [player]

@@ -16,20 +16,23 @@
   (int (+ (* level sep) (* level asc))))
 
 (defn- gen-legend [^Graphics g ^FontMetrics fm asc]
-  (let [words ["Legend: player - " " enemy - " " treasure - "
-               " shrine - " " up - " " down - "]
+  (let [words ["player, " " enemy, " " treasure, "
+               " shrine, " " up, " " down"]
         colors [Color/blue Color/red treasure-color
                 Color/green Color/magenta Color/gray]
-        h (height 2 asc)]
-    (loop [w words, x 5, c colors]
+        h (height 2 asc)
+	initx (. fm stringWidth "Legend: ")]
+    (. g setColor Color/white)
+    (. g drawString "Legend: " 5 h)
+    (loop [w words, x (+ 5 initx), c colors]
       (when w
         (let [^String word (first w)
               ^Color color (first c)
               size (. fm stringWidth word)]
-          (. g setColor Color/white)
-          (. g drawString word x h)
           (. g setColor color)
-          (. g fillRect (+ x size sep) (- h 8) 10 10)
+          (. g fillRect x (- h 8) 10 10)
+	  (. g setColor Color/white)
+          (. g drawString word (+ x 10 sep) h)
           (recur (next w) (+ x size sep sep 10) (next c)))))))
 
 (defn- draw-map [^Graphics g w h]

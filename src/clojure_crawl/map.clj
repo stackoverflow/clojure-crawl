@@ -157,6 +157,11 @@
 	 (reset! current-room room)
 	 (visit-current-room)))))
 
+(defn reset []
+  (reset! current-room nil)
+  (reset! current-level nil)
+  (reset! dungeon []))
+
 ; helper
 (defn- show-level [level]
   (doseq [x (range 1 (inc (* size size)))]

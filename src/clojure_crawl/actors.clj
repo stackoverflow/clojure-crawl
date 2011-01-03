@@ -44,7 +44,8 @@
   (mana-regen [actor])
   (hide [actor])
   (dead? [actor])
-  (damage [actor dmg]))
+  (damage [actor dmg])
+  (add-xp [actor xp]))
 
 (defprotocol Descriptable
   (describe [stuff]))
@@ -245,4 +246,6 @@
   (hide [player] (all-bonus :hide player))
   (dead? [player] (<= @(:life player) 0))
   (damage [player dmg]
-	  (swap! (:life player) - dmg)))
+	  (swap! (:life player) - dmg))
+  (add-xp [player xp]
+	  (swap! (:exp player) + xp)))

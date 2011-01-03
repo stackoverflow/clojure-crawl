@@ -30,7 +30,11 @@
 	 "Critical Hit! ")
        (if (:evade att)
 	 "Enemy Evaded "
-	 (str "Caused " (int (:damage att)) " damage"))))
+	 (str "Caused " (int (:damage att)) " damage. "))
+       (when (:exp att)
+	 (str "Gained " (:exp att) " experience. "))
+       (when (:level-up att)
+	 "LEVEL UP!")))
 
 (defn apply-in-vec [f v]
   (vec (map f v)))

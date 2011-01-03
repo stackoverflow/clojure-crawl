@@ -22,5 +22,6 @@
     (swap! (:life player) + (* 15 (:health clazz)))
     (reset! (:max-life player) @(:life player))
     (swap! (:mana player) + (* 2 (:magic clazz)))
-    (reset! (:max-mana player) @(:mana player))
-    (reset! (:exp player) 0)))
+    (reset! (:max-mana player) @(:mana player))))
+
+(defn xp-for-level [level] level)
