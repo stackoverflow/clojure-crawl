@@ -6,7 +6,7 @@
 
 (defrecord Clazz [name description strength agility health magic skills])
 
-(defrecord Skill [name description only-in-battle? active? level target])
+(defrecord Skill [name description only-in-battle? active? level target exp])
 
 (defmulti describe-skill :name)
 (defmulti mana-consume :name)
@@ -28,6 +28,8 @@
 
 (defrecord Enemy [name description strength agility health magic skills life max-life mana max-mana level drop aware])
 
+(defmulti ai-action :name)
+
 (defprotocol Actor
   (strength [actor])
   (agility [actor])
@@ -45,7 +47,9 @@
   (hide [actor])
   (dead? [actor])
   (damage [actor dmg])
-  (add-xp [actor xp]))
+  (add-xp [actor xp])
+  (add-skill-xp [actor skill xp])
+  (consume-mana [actor amount]))
 
 (defprotocol Descriptable
   (describe [stuff]))
@@ -127,7 +131,15 @@
   (dead? [enemy]
 	 (<= @(:life enemy) 0))
   (damage [enemy dmg]
-	  (swap! (:life enemy) - dmg)))
+	  (let [life (:life enemy)
+		max-life (:max-life enemy)
+		nlife (- @life dmg)
+		rnlife (if (> nlife max-life) max-life nlife)]
+	    (reset! life rnlife)))
+  (consume-mana [enemy amount]
+		(let [calc (- @(:mana enemy) amount)
+		      newval (if (< calc 0) 0 calc)]
+		  (reset! (:mana enemy) newval))))
 
 ;;; player helper functions
 
@@ -247,5 +259,17 @@
   (dead? [player] (<= @(:life player) 0))
   (damage [player dmg]
 	  (swap! (:life player) - dmg))
+  (damage [player dmg]
+	  (let [life (:life player)
+		max-life @(:max-life player)
+		nlife (- @life dmg)
+		rnlife (if (> nlife max-life) max-life nlife)]
+	    (reset! life rnlife)))
   (add-xp [player xp]
-	  (swap! (:exp player) + xp)))
+	  (swap! (:exp player) + xp))
+  (add-skill-xp [player skill xp]
+		(swap! (:exp skill) + xp))
+  (consume-mana [player amount]
+		(let [calc (- @(:mana player) amount)
+		      newval (if (< calc 0) 0 calc)]
+		  (reset! (:mana player) newval))))

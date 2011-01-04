@@ -21,17 +21,32 @@
        (defmethod ~'skill-hide ~name [~'skill ~'actor] ~hi)))
 
 (def *skills*
-     {:crush (new Skill "Crush" "Powerfull attack" true true (atom 1) :enemy)
-      :critical-strike (new Skill "Critical Strike"
-			    "Improves attack and critical %" true true (atom 1) :enemy)
-      :fireball (new Skill "Fireball" "Great ball of fire" true true (atom 1) :enemy)
-      :heal (new Skill "Heal" "Increase current life" false true (atom 1) :self)
-      :attack-up (new Skill "Attack Up" "Increases attack power"
-		      false false nil nil)
-      :sneak (new Skill "Sneak" "Increases hide %" false false nil nil)
-      :magic-up (new Skill "Magic Up" "Increases magic power"
-		     false false nil nil)
-      :vitality (new Skill "Vitality" "Increases life" false false nil nil)})
+     {:crush {:name "Crush" :description "Powerfull attack"
+	      :only-in-battle? true :active? true :target :enemy}
+      :critical-strike {:name "Critical Strike" :description "Improves attack and critical %"
+			:only-in-battle? true :active? true :target :enemy}
+      :fireball {:name "Fireball" :description "Great ball of fire"
+		 :only-in-battle? true :active? true :target :enemy}
+      :heal {:name "Heal" :description "Heals life"
+	     :only-in-battle? false :active? true :target :self}
+      :attack-up {:name "Attack Up" :description "Increases attack power"
+		  :only-in-battle? false :active? false :target nil}
+      :sneak {:name "Sneak" :description "Increases hide %"
+	      :only-in-battle? false :active? false :target nil}
+      :magic-up {:name "Magic Up" :description "Increases magic power"
+		 :only-in-battle? false :active? false :target nil}
+      :vitality {:name "Vitality" :description "Increases life"
+		 :only-in-battle? false :active? false :target nil}})
+
+(defn new-skill [skill-map level]
+  (new Skill (:name skill-map) (:description skill-map)
+       (:only-in-battle? skill-map) (:active? skill-map)
+       (atom level) (:target skill-map) (atom 0)))
+
+(defn can-use [actor skill]
+  (let [consume (mana-consume skill actor)
+	mana @(:mana actor)]
+    (>= mana consume)))
 
 (gen-skill-methods "Crush"
 		   (let [level @(:level skill)			 

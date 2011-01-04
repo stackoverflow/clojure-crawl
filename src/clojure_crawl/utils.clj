@@ -26,15 +26,18 @@
   (str (to-num (first v)) " - " (to-num (second v))))
 
 (defn attack->str [att]
-  (str (when (:critical att)
-	 "Critical Hit! ")
-       (if (:evade att)
-	 "Enemy Evaded "
-	 (str "Caused " (int (:damage att)) " damage. "))
-       (when (:exp att)
-	 (str "Gained " (:exp att) " experience. "))
-       (when (:level-up att)
-	 "LEVEL UP!")))
+  (let [skill (:skill-level-up att)]
+    (str (when (:critical att)
+	   "Critical Hit! ")
+	 (if (:evade att)
+	   "Enemy Evaded "
+	   (str "Caused " (int (:damage att)) " damage. "))
+	 (when (:exp att)
+	   (str "Gained " (:exp att) " experience. "))
+	 (when (:level-up att)
+	   "LEVEL UP!")
+	 (when skill
+	   (str "Skill " (:name skill) " is now on level " @(:level skill) "! ")))))
 
 (defn apply-in-vec [f v]
   (vec (map f v)))

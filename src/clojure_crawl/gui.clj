@@ -12,7 +12,8 @@
 	clojure-crawl.utils
 	clojure-crawl.mapcanvas
 	clojure-crawl.guiutils)
-  (:require [clojure-crawl [game :as game]]))
+  (:require [clojure-crawl [game :as game]]
+	    [clojure-crawl [levels :as levels]]))
 
 ;(set! *warn-on-reflection* true)
 
@@ -80,7 +81,7 @@
 		  (:agility gui-player) (str (agility player))
 		  (:health gui-player) (str (health player))
 		  (:magic gui-player) (str (magic player))
-		  (:exp gui-player) (str @(:exp player))
+		  (:exp gui-player) (str @(:exp player) "/" (levels/next-level-xp player))
 		  (:life gui-player) (str (pos-num @(:life player)) "/" (pos-num (max-life player)))
 		  (:mana gui-player) (str (pos-num @(:mana player)) "/" (pos-num (max-mana player)))
 		  (:level gui-player) (str @(:level player))
@@ -132,28 +133,40 @@
   (. gameframe setVisible true))
 
 (defn- game-over []
-  (show-message gameframe "You died!" "Game Over")
+  (show-message gameframe "Game Over" "You died!")
   (init-gui))
 
-(defn- gui-attack [player?]
-  (if player?
-    (let [res (game/attack-enemy)]
-      (if res
-	(if (dead? (game/current-enemy))
-	  (status-print (attack->str res))
-	  (let [res2 (game/attack-player)]
-	    (status-print (str "player: " (attack->str res)
-			       " | enemy: " (attack->str res2)))))
-	(status-print "No enemy to attack"))
-      (when (dead? (game/player))
-	(game-over))
-      (set-gui-player)
-      (set-gui-enemy)
-      (repaint-map))
-    (let [res (game/attack-player)]
-      (status-print (attack->str res))
-      (set-gui-enemy)
-      (repaint-map))))
+(defn- gui-enemy-turn [])
+
+(defn- gui-attack []
+  (let [enemy (game/current-enemy)]
+    (if (and enemy (not (dead? enemy)))
+      (let [res (game/attack-enemy)]
+	(if res
+	  (if (dead? (game/current-enemy))
+	    (status-print (attack->str res))
+	    (let [res2 (game/attack-player)]
+	      (status-print (str "player: " (attack->str res)
+				 " | enemy: " (attack->str res2)))))
+	  (status-print "No enemy to attack"))
+	(when (dead? (game/player))
+	  (game-over))
+	(set-gui-player)
+	(set-gui-enemy)
+	(repaint-map))
+      (status-print "No enemy in the room"))))
+
+(defn- gui-skill [name]
+  (let [enemy (game/current-enemy)]
+    (if (and enemy (not (dead? enemy)))
+      (let [res (game/use-skill name)]
+	(if res
+	  (status-print (str name " - " (attack->str res)))
+	  (status-print "Not enough mana"))
+	(set-gui-player)
+	(set-gui-enemy)
+	(repaint-map))
+      (status-print "No enemy in the room"))))
 
 (defn- ^JPanel create-all-skills-panel []
   (let [^JPanel panel (new JPanel)
@@ -165,7 +178,7 @@
                  area [110 20 200 210]])
     (. tarea setEditable false)
     (. jlist addListSelectionListener
-      (list-selection-listener (let [name (. jlist getSelectedValue)]
+      (list-selection-listener (when-let [name (. jlist getSelectedValue)]
                                  (. tarea setText (game/show-skill name @(:player game/game))))))
     (doto panel
       (. setSize (new Dimension 320 245))
@@ -225,7 +238,11 @@
         border (BorderFactory/createTitledBorder "Actions")
 	list (:act-skills gui-player)
 	scpane (new JScrollPane list)]
-    (add-action-listener att (gui-attack true))
+    (add-action-listener att (gui-attack))
+    (add-action-listener usesk
+			 (if-let [name (. list getSelectedValue)]
+			   (gui-skill name)
+			   (status-print "No skill selected")))
     (set-bounds [scpane [10 20 140 190]
 		 att [160 20 80 25]
 		 usesk [160 50 80 25]])

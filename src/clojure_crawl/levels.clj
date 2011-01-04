@@ -9,8 +9,13 @@
 	level @(:level player)]
     (- (nth *xp-table* (dec level)) xp)))
 
+(defn next-level-xp [player]
+  (let [level @(:level player)]
+    (nth *xp-table* (dec level))))
+
 (defn leveled? [player]
-  (<= (to-next-level player) 0))
+  (and (< @(:level player) 99)
+       (<= (to-next-level player) 0)))
 
 (defn level-up [player]
   (let [clazz @(:clazz player)]
@@ -25,3 +30,27 @@
     (reset! (:max-mana player) @(:mana player))))
 
 (defn xp-for-level [level] level)
+
+;; skills
+
+(def *skill-xp-table*
+     (for [x (range 1 10)] (+ 8 (* 2 x))))
+
+(defn skill-xp-for-level [] 1)
+
+(defn skill-to-next-level [skill]
+  (let [xp @(:exp skill)
+	level @(:level skill)]
+    (- (nth *skill-xp-table* (dec level)) xp)))
+
+(defn skill-next-level-xp [skill]
+  (let [level @(:level skill)]
+    (nth *skill-xp-table* (dec level))))
+
+(defn skill-leveled? [skill]
+  (and (< @(:level skill) 10)
+       (<= (skill-to-next-level skill) 0)))
+
+(defn skill-level-up [skill]
+  (reset! (:exp skill) 0)
+  (swap! (:level skill) inc))

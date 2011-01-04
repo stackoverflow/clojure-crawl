@@ -28,6 +28,29 @@
      :critical (if vic-evd? false att-cri?)
      :evade vic-evd?}))
 
+(defn- use-skill* [skill att vic]
+  (let [target (:target skill)
+	desc (describe-skill skill att)]
+    (cond (= target :enemy)
+	  (let [crit (:critical desc)
+		crit? (probability-result (if crit crit 0))
+		dmg (if (:attack desc)
+		      (skill-attack skill att)
+		      0)
+		defen (defense vic)]
+	    {:damage (if crit?
+		       (- (* 2 dmg) defen)
+		       (- dmg defen))
+	     :critical crit?})
+	  (= target :self)
+	  (let [crit (:critical desc)
+		crit? (probability-result (if crit crit 0))
+		dmg (if (:attack desc)
+		      (skill-attack skill att)
+		      0)]
+	    {:damage (if crit? (* 2 dmg) dmg)
+	     :critical crit?}))))
+
 (defrecord Game [player dungeon current-level current-room])
 
 (extend-type Game
@@ -77,7 +100,7 @@
 (defn new-player [name race clazz]
   (let [r (race *races*)
 	c (clazz *classes*)
-	skills (vec (map #(% *skills*) (:skills c)))
+	skills (vec (map #(new-skill (% *skills*) 1) (:skills c)))
 	health (add-race-bonus :health r (* 5 (:health c)))
 	magic (add-race-bonus :magic r (* 5 (:magic c)))
 	life (add-race-bonus :life r (+ 20 (* 2 health)))
@@ -149,23 +172,49 @@
 (defn player []
   @(:player game))
 
+(defn- give-xp-skill [skill player res]
+  (add-skill-xp player skill (levels/skill-xp-for-level))
+  (if (levels/skill-leveled? skill)
+    (do
+      (levels/skill-level-up skill)
+      (assoc res :skill-level-up skill))
+    res))
+
+(defn- give-xp [player enemy res]
+  (if (dead? enemy)
+    (let [xp (levels/xp-for-level (:level enemy))]
+      (add-xp player xp)
+      (if (levels/leveled? player)
+	(do
+	  (levels/level-up player)
+	  (assoc res :exp xp :level-up true))
+	(assoc res :exp xp)))
+    res))
+
 (defn attack-enemy []
-  (let [res (player-attack game)
-	enemy (current-enemy)
+  (let [enemy (current-enemy)
+	res (player-attack game)
 	player (player)]
-    (if (dead? enemy)
-      (let [xp (levels/xp-for-level (:level enemy))]
-	(add-xp player xp)
-	(if (levels/leveled? player)
-	  (do
-	    (levels/level-up player)
-	    (assoc res :exp xp :level-up true))
-	  (assoc res :exp xp)))
-      res)))
-	  
+    (give-xp player enemy res)))
 
 (defn attack-player []
   (enemy-attack game))
+
+(defn use-skill [name]
+  (when-let [skill (first (filter #(= name (:name %)) @(:skills (player))))]
+    (let [consume (mana-consume skill (player))
+	  pl (player)
+	  enemy (current-enemy)]
+      (if (can-use pl skill)
+	(let [res (use-skill* skill pl enemy)
+	      target (:target skill)]
+	  (cond (= target :enemy)
+		(damage enemy (:damage res))
+		(= target :self)
+		(damage player (- (:damage res))))
+	  (consume-mana pl consume)
+	  (give-xp pl enemy (give-xp-skill skill pl res)))
+	nil))))
 
 (defn reset []
   (reset! (:player game) nil)
@@ -231,4 +280,6 @@
 	 "active: " (if (:active? skill) "yes" "no") "\n"
 	 "only in battle: " (if (:only-in-battle? skill) "yes" "no") "\n"
 	 "target: " (target->str (:target skill)) "\n"
+	 (when (:active? skill)
+	   (str "exp: " @(:exp skill) "/" (levels/skill-next-level-xp skill) "\n"))
 	 (skill-desc->str desc (:active? skill)))))
