@@ -75,12 +75,12 @@
 (gen-skill-methods "Fireball"
 		   (let [level @(:level skill)
 			 tmp (+ 1 (/ level 10))
-			 mag @(:magic actor)
+			 mag (magic actor)
 			 m2 (* mag 0.75)]
 		     {:attack [(* tmp m2) (* tmp mag)], :mana (* 5 level)})		   
 		   (* 5 @(:level skill)) ;consume
 		   0 0 0 0
-		   (let [mag @(:magic actor)
+		   (let [mag (magic actor)
 			 m3 (* mag 0.75)			 
 			 bonus (+ 1 (/ @(:level skill) 10))]
 		     (* bonus (rand-between m3 mag))) ;attack (magic)
@@ -89,12 +89,12 @@
 (gen-skill-methods "Heal"
 		   (let [level @(:level skill)
 			 tmp (+ 1 (/ level 10))
-			 mag @(:magic actor)
+			 mag (magic actor)
 			 m2 (* mag 0.75)]
 		     {:attack [(* tmp m2) (* tmp mag)], :mana (* 5 level)})		   
 		   (* 5 @(:level skill)) ;consume
 		   0 0 0 0
-		   (let [mag @(:magic actor)
+		   (let [mag (magic actor)
 			 m3 (* mag 0.75)			 
 			 bonus (+ 1 (/ @(:level skill) 10))]
 		     (* bonus (rand-between m3 mag))) ;attack (magic)

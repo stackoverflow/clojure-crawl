@@ -4,7 +4,7 @@
 
 (defrecord Effect [strength agility health magic attack defense critical evade life mana life-regen mana-regen hide skills expires])
 
-(defrecord AFix [name type effect])
+(defrecord AFix [name type level effect])
 
 (defrecord Item [name description type kind prefix suffix level effect])
 
@@ -16,6 +16,14 @@
        (if (and v (not= v 0))
 	 (str (if (pos? v) "+" "-") v add " to " (key->name key) "\n")
 	 nil))))
+
+(defn create-effect
+  ([desc] (create-effect desc nil))
+  ([desc expiration]
+     (new Effect (:strength desc) (:agility desc) (:health desc) (:magic desc)
+	  (:attack desc) (:defense desc) (:critical desc) (:evade desc)
+	  (:life desc) (:mana desc) (:life-regen desc) (:mana-regen desc)
+	  (:hide desc) (:skills desc) expiration)))
 
 (defn show-effect [effect]
   (str (show-valid :strength effect)

@@ -26,17 +26,23 @@
   (str (to-num (first v)) " - " (to-num (second v))))
 
 (defn attack->str [att]
-  (let [skill (:skill-level-up att)]
-    (str (when (:critical att)
+  (let [skill (:skill att)
+	skill-up (:skill-level-up att)
+	dmg (int (:damage att))]
+    (str (when skill
+	   (str (:name skill) " - "))
+	 (when (:critical att)
 	   "Critical Hit! ")
 	 (if (:evade att)
 	   "Enemy Evaded "
-	   (str "Caused " (int (:damage att)) " damage. "))
+	   (if (>= dmg 0)
+	     (str "Caused " dmg " damage. ")
+	     (str "Healed " (- dmg) " life. ")))
 	 (when (:exp att)
 	   (str "Gained " (:exp att) " experience. "))
 	 (when (:level-up att)
 	   "LEVEL UP!")
-	 (when skill
+	 (when skill-up
 	   (str "Skill " (:name skill) " is now on level " @(:level skill) "! ")))))
 
 (defn apply-in-vec [f v]
@@ -53,3 +59,8 @@
 
 (defn probability-result [n]
   (> n (inc (rand-int 100))))
+
+(defn between-range
+  "Returns true if val is a number between center - distance and center + distance."
+  [val center distance]
+  (some #{val} (range (- center distance) (+ center distance))))

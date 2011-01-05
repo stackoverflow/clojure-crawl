@@ -136,37 +136,36 @@
   (show-message gameframe "Game Over" "You died!")
   (init-gui))
 
-(defn- gui-enemy-turn [])
+(defn- gui-enemy-turn []
+  (let [action (ai-action (game/current-enemy) (game/player))]
+    (cond (:attack action)
+	  (game/attack-player)
+	  (:skill action)
+	  (game/use-skill-enemy (:skill action)))))
+
+(defn- gui-player-action [act-fun fail-msg]
+  (let [enemy (game/current-enemy)]
+    (if (and enemy (not (dead? enemy)))
+      (let [res (act-fun)]
+	(if res
+	  (if (dead? enemy)
+	    (status-print (str (attack->str res) " Enemy is dead"))
+	    (let [res2 (gui-enemy-turn)]
+	      (status-print (str "Player: " (attack->str res)
+				 " Enemy: " (attack->str res2)))
+	      (when (dead? (game/player))
+		(game-over))))
+	  (status-print fail-msg))
+	(set-gui-player)
+	(set-gui-enemy)
+	(repaint-map))
+      (status-print "No enemy in the room"))))
 
 (defn- gui-attack []
-  (let [enemy (game/current-enemy)]
-    (if (and enemy (not (dead? enemy)))
-      (let [res (game/attack-enemy)]
-	(if res
-	  (if (dead? (game/current-enemy))
-	    (status-print (attack->str res))
-	    (let [res2 (game/attack-player)]
-	      (status-print (str "player: " (attack->str res)
-				 " | enemy: " (attack->str res2)))))
-	  (status-print "No enemy to attack"))
-	(when (dead? (game/player))
-	  (game-over))
-	(set-gui-player)
-	(set-gui-enemy)
-	(repaint-map))
-      (status-print "No enemy in the room"))))
+  (gui-player-action game/attack-enemy "No enemy to attack"))
 
 (defn- gui-skill [name]
-  (let [enemy (game/current-enemy)]
-    (if (and enemy (not (dead? enemy)))
-      (let [res (game/use-skill name)]
-	(if res
-	  (status-print (str name " - " (attack->str res)))
-	  (status-print "Not enough mana"))
-	(set-gui-player)
-	(set-gui-enemy)
-	(repaint-map))
-      (status-print "No enemy in the room"))))
+  (gui-player-action #(game/use-skill-player name) "Not enough mana"))
 
 (defn- ^JPanel create-all-skills-panel []
   (let [^JPanel panel (new JPanel)
@@ -252,6 +251,9 @@
       (. setBorder border)
       (. setLayout nil))
     panel))
+
+;(defn- ^JPanel create-treasurepanel []
+;  (let [panel (new
 
 (defn- ^JPanel create-statusbar []
   (doto statusbar

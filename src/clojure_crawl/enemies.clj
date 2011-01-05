@@ -42,7 +42,7 @@
 
 (defmethod ai-action "Fallen Priest" [enemy player]
   (let [life @(:life enemy)
-	maxlife @(:max-life enemy)
+	maxlife (:max-life enemy)
 	lifeperc (/ (* 100 life) maxlife)
 	skill (first (:skills enemy))]
     (if (and (can-use enemy skill)

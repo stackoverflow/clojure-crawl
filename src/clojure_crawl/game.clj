@@ -48,7 +48,7 @@
 		dmg (if (:attack desc)
 		      (skill-attack skill att)
 		      0)]
-	    {:damage (if crit? (* 2 dmg) dmg)
+	    {:damage (if crit? (* 2 (- dmg)) (- dmg))
 	     :critical crit?}))))
 
 (defrecord Game [player dungeon current-level current-room])
@@ -177,8 +177,8 @@
   (if (levels/skill-leveled? skill)
     (do
       (levels/skill-level-up skill)
-      (assoc res :skill-level-up skill))
-    res))
+      (assoc res :skill skill :skill-level-up true))
+    (assoc res :skill skill)))
 
 (defn- give-xp [player enemy res]
   (if (dead? enemy)
@@ -200,21 +200,31 @@
 (defn attack-player []
   (enemy-attack game))
 
-(defn use-skill [name]
+(defn- use-skill [skill att vic give-xp?]
+  (let [consume (mana-consume skill att)]
+    (if (can-use att skill)
+      (let [res (use-skill* skill att vic)
+	    target (:target skill)]
+	(cond (= target :enemy)
+	      (damage vic (:damage res))
+	      (= target :self)
+	      (damage att (:damage res)))
+	(consume-mana att consume)
+	(if give-xp?
+	  (give-xp att vic (give-xp-skill skill att res))
+	  (assoc res :skill skill)))
+      nil)))
+
+(defn use-skill-player [name]
   (when-let [skill (first (filter #(= name (:name %)) @(:skills (player))))]
-    (let [consume (mana-consume skill (player))
-	  pl (player)
+    (let [pl (player)
 	  enemy (current-enemy)]
-      (if (can-use pl skill)
-	(let [res (use-skill* skill pl enemy)
-	      target (:target skill)]
-	  (cond (= target :enemy)
-		(damage enemy (:damage res))
-		(= target :self)
-		(damage player (- (:damage res))))
-	  (consume-mana pl consume)
-	  (give-xp pl enemy (give-xp-skill skill pl res)))
-	nil))))
+      (use-skill skill pl enemy true))))
+
+(defn use-skill-enemy [skill]
+  (let [pl (player)
+	enemy (current-enemy)]
+    (use-skill skill enemy pl false)))
 
 (defn reset []
   (reset! (:player game) nil)

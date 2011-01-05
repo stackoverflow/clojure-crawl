@@ -34,7 +34,7 @@
 ;; skills
 
 (def *skill-xp-table*
-     (for [x (range 1 10)] (+ 8 (* 2 x))))
+     (for [x (range 1 10)] (+ 20 (* 20 x))))
 
 (defn skill-xp-for-level [] 1)
 
