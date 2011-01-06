@@ -127,6 +127,31 @@ skill:
 - level (only used in active ones)
 - target (self, enemy, both [only used in active skills])
 
+weapons:
+- swords
+    - give attack and agility
+- axes
+    - give attack and strength
+- maces
+    - give attack and health
+- staffs
+    - give attack and magic
+- spears
+    - give attack and defense
+- daggers
+    - give attack and critical
+- bows
+    - give attack and evade
+
+armors:
+- give defense
+
+shields:
+- give defense and evade
+
+rings:
+- give any effect
+
 # calculate health
 (defn calc-hp [init-health health-inc level]
       (loop [att init-health, life (+ 20 (* init-health 2)), l 1]
