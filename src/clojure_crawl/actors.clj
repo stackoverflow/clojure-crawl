@@ -47,6 +47,7 @@
   (hide [actor])
   (dead? [actor])
   (damage [actor dmg])
+  (add-item [actor item])
   (add-xp [actor xp])
   (add-skill-xp [actor skill xp])
   (consume-mana [actor amount]))
@@ -265,6 +266,10 @@
 		nlife (- @life dmg)
 		rnlife (if (> nlife max-life) max-life nlife)]
 	    (reset! life rnlife)))
+  (add-item [player item]
+	    (let [bag (:bag player)]
+	      (when (< (count @bag) 20)
+		(swap! bag conj item))))
   (add-xp [player xp]
 	  (swap! (:exp player) + xp))
   (add-skill-xp [player skill xp]

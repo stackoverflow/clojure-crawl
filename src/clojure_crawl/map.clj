@@ -1,7 +1,8 @@
 (ns clojure-crawl.map
   (:use clojure.set
 	clojure-crawl.enemies
-	clojure-crawl.utils))
+	clojure-crawl.utils
+	clojure-crawl.items))
 
 (def size 8)
 
@@ -97,9 +98,10 @@
                      (contains? stru (dec n)))
               front (contains? stru (+ n size))
               rear (contains? stru (- n size))
-              treasure (probability-result *treasure-chance*)
+              treasure? (probability-result *treasure-chance*)
+	      treasure (when treasure? (gen-random-item depth))
               room (new Room rigth left front rear shrine? up? down?
-                     enemy treasure n (atom false))]
+                     enemy (atom treasure) n (atom false))]
           (recur (next ns) (conj rooms room)))
         rooms))))
 

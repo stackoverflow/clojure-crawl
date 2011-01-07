@@ -2,6 +2,8 @@
   (:use clojure-crawl.utils)
   (:require [clojure [string :as string]]))
 
+(def *equip-types* [:weapon :armor :shield :ring])
+
 (defrecord Effect [strength agility health magic attack defense critical evade life mana life-regen mana-regen hide skills expires])
 
 (defrecord AFix [name type level effect])

@@ -5,7 +5,7 @@
 			JScrollPane ListSelectionModel
 			BorderFactory JTabbedPane JComponent)
 	   (javax.swing.border TitledBorder)
-	   (java.awt Dimension Color))
+	   (java.awt Dimension Color BorderLayout))
   (:use clojure-crawl.actors
 	clojure-crawl.races
 	clojure-crawl.classes
@@ -13,7 +13,8 @@
 	clojure-crawl.mapcanvas
 	clojure-crawl.guiutils)
   (:require [clojure-crawl [game :as game]]
-	    [clojure-crawl [levels :as levels]]))
+	    [clojure-crawl [levels :as levels]]
+	    [clojure-crawl [items :as items]]))
 
 ;(set! *warn-on-reflection* true)
 
@@ -24,7 +25,7 @@
 
 (defrecord Gui-enemy [name description strength agility health magic life mana level attack defense critical evade aware skills])
 
-(defrecord Gui-treasure [name description type kind effect])
+(defrecord Gui-treasure [description])
 
 ;; variables
 (def ^JFrame gameframe (new JFrame "Clojure Crawler"))
@@ -52,8 +53,7 @@
 		    (new JLabel) (new JLabel) (new JLabel) (new JLabel) (new JLabel)
 		    (new JLabel)))
 
-(def gui-treasure (new Gui-treasure (new JLabel) (new JLabel) (new JLabel) (new JLabel)
-		       (new JLabel)))
+(def gui-treasure (new Gui-treasure (new JTextArea)))
 
 ;; helpers
 (defn- repaint-map []
@@ -70,7 +70,7 @@
 
 ;; functions
 (defn- set-gui-player []
-  (if-let [player @(:player game/game)]
+  (when-let [player @(:player game/game)]
     (let [skills @(:skills player)
 	  [list _] (:all-skills gui-player)
 	  act-list (:act-skills gui-player)]
@@ -100,7 +100,7 @@
     (. (ks gui-enemy) setText "")))
 
 (defn- set-gui-enemy []
-  (when-let [enemy (:enemy @(:current-room game/game))]
+  (when-let [enemy (:enemy (game/current-room))]
     (if (dead? enemy)
       (reset-gui-enemy)
       (do
@@ -120,6 +120,24 @@
 		    (:aware gui-enemy) (str @(:aware enemy))
 		    (:skills gui-enemy) (str (vec (map :name (:skills enemy))))])
 	(. gameframe repaint)))))
+
+(defn- reset-gui-treasure []
+  (. (:description gui-treasure) setText ""))
+
+(defn- set-gui-treasure []
+  (let [tre @(:treasure (game/current-room))]
+    (if (not tre)
+      (reset-gui-treasure)
+      (do
+	(. (:description gui-treasure) setText (items/show-item tre))
+	(. gameframe repaint)))))
+
+(defn- set-gui-bag []
+  (when-let [player @(:player game/game)]
+    (let [bag @(:bag player)
+	  gbag (first (:bag gui-player))]
+      (. gbag setListData (object-array (map items/item-name bag)))
+      (. gameframe repaint))))
 
 (defn- reset-game []
   (game/reset)
@@ -167,7 +185,7 @@
 (defn- gui-skill [name]
   (gui-player-action #(game/use-skill-player name) "Not enough mana"))
 
-(defn- ^JPanel create-all-skills-panel []
+(defn- create-all-skills-panel []
   (let [^JPanel panel (new JPanel)
         border (BorderFactory/createTitledBorder "Skills")
         [jlist tarea] (:all-skills gui-player)
@@ -186,7 +204,7 @@
       (. add list)
       (. add area))))
 
-(defn- ^JPanel create-playerpanel []
+(defn- create-playerpanel []
   (let [^JPanel panel (new JPanel)
         labels ["Name:" "Race:" "Class:" "Strength:" "Agility:" "Health:" "Magic:"
                 "Experience:" "Life:" "Mana:" "Level:" "Attack:" "Defense:" "Critical:"
@@ -208,7 +226,7 @@
         (swap! y + 19)))
     panel))
 
-(defn- ^JPanel create-enemypanel []
+(defn- create-enemypanel []
   (let [^JPanel panel (new JPanel)
         labels ["Name:" "Description:" "Strength:" "Agility:" "Health:" "Magic:"
                 "Life:" "Mana:" "Level:" "Attack:" "Defense:" "Critical:"
@@ -230,7 +248,7 @@
         (swap! y + 19)))
     panel))
 
-(defn- ^JPanel create-actionpanel []
+(defn- create-actionpanel []
   (let [^JPanel panel (new JPanel)
 	^JButton usesk (new JButton "use skill")
 	^JButton att (new JButton "attack")
@@ -247,20 +265,110 @@
 		 usesk [160 50 80 25]])
     (add-all panel usesk att scpane)
     (doto panel
-      (. setSize (new Dimension 250 220))
-      (. setBorder border)
-      (. setLayout nil))
+      (. setLayout nil)
+      (. setSize 250 220)
+      (. setBorder border))
     panel))
 
-;(defn- ^JPanel create-treasurepanel []
-;  (let [panel (new
+(defn- create-treasurepanel []
+  (let [panel (new JPanel)
+	pick (new JButton "pick up")
+	border (BorderFactory/createTitledBorder "Treasure / Drop")
+	area (:description gui-treasure)
+	scpane (new JScrollPane area)]
+    (set-bounds [scpane [10 20 230 160]
+		 pick [10 185 80 25]])
+    (. area setEditable false)
+    (add-all panel pick scpane)
+    (add-action-listener pick
+			 (let [res (game/pickup-item)]
+			   (cond (= res :added)
+				 (status-print "item added to bag.")
+				 (= res :full)
+				 (status-print "bag is full.")
+				 (= res :no-item)
+				 (status-print "no item to pick up."))
+			   (repaint-map)
+			   (reset-gui-treasure)
+			   (set-gui-bag)))
+    (doto panel
+      (.setLayout nil)
+      (.setSize 250 220)
+      (.setBorder border))
+    panel))
 
-(defn- ^JPanel create-statusbar []
+(defn- create-bagpanel []
+  (let [panel (new JPanel)
+	equip (new JButton "equip")
+	use (new JButton "use")
+	delete (new JButton "delete")
+        border (BorderFactory/createTitledBorder "Bag")
+	[list area] (:bag gui-player)
+	scpanedesc (new JScrollPane area)
+	scpanelist (new JScrollPane list)]
+;    (add-action-listener equip)
+    (add-action-listener delete
+			 (when-let [i (. list getSelectedIndex)]
+			   (let [item (nth @(:bag (game/player)) i)]
+			     (game/remove-item item)
+			     (set-gui-bag))))
+    (set-bounds [scpanelist [10 20 140 220]
+		 scpanedesc [160 20 240 220]
+		 equip [10 250 80 25]
+		 use [100 250 80 25]
+		 delete [190 250 80 25]])
+    (. area setEditable false)
+    (. list addListSelectionListener
+       (list-selection-listener (let [i (. list getSelectedIndex)
+				      bag @(:bag (game/player))]
+				  (when (and i (>= i 0) (> (count bag) i))
+				    (let [item (nth bag i)]
+				      (. area setText (items/show-item item)))))))
+    (add-all panel equip use delete scpanelist scpanedesc)
+    (doto panel
+      (. setLayout nil)
+      (. setSize 420 300)
+      (. setBorder border))
+    panel))
+
+(defn- create-equippanel []
+  (let [panel (new JPanel)
+	unequip (new JButton "unequip")
+        border (BorderFactory/createTitledBorder "Equipment")
+	[list area] (:equip gui-player)
+	scpanedesc (new JScrollPane area)
+	scpanelist (new JScrollPane list)]
+;    (add-action-listener unequip)
+    (set-bounds [scpanelist [10 20 90 220]
+		 scpanedesc [110 20 290 220]
+		 unequip [10 250 80 25]])
+    (. area setEditable false)
+    (. list setListData (object-array ["Weapon" "Armor" "Shield" "Ring"]))
+    (. list addListSelectionListener
+       (list-selection-listener (let [k (. list getSelectedValue)
+				      equip @(:equip (game/player))]
+				  (when (and k (not (. k isEmpty)))
+				    (when-let [item ((name->key k) equip)]
+				      (. area setText (items/show-item item)))))))
+    (add-all panel unequip scpanelist scpanedesc)
+    (doto panel
+      (. setLayout nil)
+      (. setSize 420 300)
+      (. setBorder border))
+    panel))
+
+(defn- create-statusbar []
   (doto statusbar
     (. setLayout nil)
     (. setSize 800 25)
     (. add statuslabel))
   (set-bounds [statuslabel [0 0 790 25]]))
+
+(defn- gui-move [where]
+  (gui-go where)
+  (status-print "")
+  (set-gui-enemy)
+  (set-gui-treasure))
 
 (defn- create-gamepanel []
   (let [playerpanel (create-playerpanel)
@@ -269,6 +377,9 @@
         playertab (new JPanel)
         gametab (new JPanel)
 	actionpanel (create-actionpanel)
+	treasurepanel (create-treasurepanel)
+	bagpanel (create-bagpanel)
+	equippanel (create-equippanel)
         ^JButton front (new JButton "Front")
         ^JButton rear (new JButton "Rear")
         ^JButton left (new JButton "Left")
@@ -280,6 +391,9 @@
     (. mapcanvas setLocation 300 10)
     (. enemypanel setLocation 0 380)
     (. actionpanel setLocation 270 480)
+    (. treasurepanel setLocation 530 480)
+    (. bagpanel setLocation 350 380)
+    (. equippanel setLocation 350 30)
     (. gamepanel addChangeListener
       (change-listener (let [pane (. e getSource)
                              name (. pane getTitleAt (. pane getSelectedIndex))]
@@ -292,22 +406,10 @@
                  right [560 450 70 25]
                  up [370 420 90 25]
                  down [570 420 90 25]])
-    (add-action-listener front (do
-                                 (gui-go :front)
-				 (status-print "")
-                                 (set-gui-enemy)))
-    (add-action-listener rear (do
-                                (gui-go :rear)
-				(status-print "")
-                                (set-gui-enemy)))
-    (add-action-listener left (do
-                                (gui-go :left)
-				(status-print "")
-                                (set-gui-enemy)))
-    (add-action-listener right (do
-                                 (gui-go :right)
-				 (status-print "")
-                                 (set-gui-enemy)))
+    (add-action-listener front (gui-move :front))
+    (add-action-listener rear (gui-move :rear))
+    (add-action-listener left (gui-move :left))
+    (add-action-listener right (gui-move :right))
     (add-action-listener up (do
 			      (game/ascend)
 			      (status-print "")
@@ -317,7 +419,8 @@
 				(status-print "")
 				(repaint-map)))
     (add-all gametab front rear left right up down mapcanvas enemypanel
-	     actionpanel)
+	     actionpanel treasurepanel)
+    (add-all playertab bagpanel equippanel skills)
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
@@ -327,13 +430,13 @@
       (. setSize 800 710))
     (doto playertab
       (. setLayout nil)
-      (. setSize 800 710)
-      (. add skills))))
+      (. setSize 800 710))))
 
 (defn- goto-game [pname race clazz]
   (let [^JPanel panel (new JPanel)]
     (game/start-game pname race clazz)
     (set-gui-player)
+    (set-gui-treasure)
     (set-bounds [panel [0 20 800 780]])
     (. gamepanel setLocation 0 0)
     (. statusbar setLocation 0 730)

@@ -40,5 +40,5 @@
 (defn set-texts [coll]
   (when (even? (count coll))
     (let [s (partition 2 coll)]
-      (doseq [[^JLabel l ^String text] s]
+      (doseq [[l ^String text] s]
 	(. l setText text)))))

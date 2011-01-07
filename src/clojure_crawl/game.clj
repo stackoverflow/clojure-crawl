@@ -129,9 +129,9 @@
   (let [player (new-player pname (name->key race) (name->key clazz))
 	level (gamemap/enter-dungeon)]
     (set-player game player)
-    (set-dungeon game gamemap/dungeon)
+    (set-dungeon game @gamemap/dungeon)
     (set-current-level game level)
-    (set-current-room game gamemap/current-room)))
+    (set-current-room game @gamemap/current-room)))
 
 (defn can-go? [side]
   (let [room @gamemap/current-room
@@ -168,6 +168,9 @@
 
 (defn current-enemy []
   (:enemy @(:current-room game)))
+
+(defn current-room []
+  @(:current-room game))
 
 (defn player []
   @(:player game))
@@ -226,12 +229,26 @@
 	enemy (current-enemy)]
     (use-skill skill enemy pl false)))
 
+(defn pickup-item []
+  (if-let [item @(:treasure (current-room))]
+    (do
+      (reset! (:treasure (current-room)) nil)
+      (let [add (add-item (player) item)]
+	(if add
+	  :added
+	  :full)))
+    :no-item))
+
 (defn reset []
   (reset! (:player game) nil)
   (reset! (:dungeon game) nil)
   (reset! (:current-level game) nil)
   (reset! (:current-room game) nil)
   (gamemap/reset))
+
+(defn remove-item [item]
+  (let [bag (:bag (player))]
+    (reset! bag (vec (remove #{item} @bag)))))
 
 ;; helpers
 (defn show-player [player]

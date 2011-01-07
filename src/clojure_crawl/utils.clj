@@ -49,10 +49,12 @@
   (vec (map f v)))
 
 (defn key->name [key]
-  (let [name (string/capitalize (subs (str key) 1))]
-    (if (. name contains "-")
-      (. name replaceAll "-" " ")
-      name)))
+  (if (not key)
+    "-"
+    (let [name (string/capitalize (subs (str key) 1))]
+      (if (. name contains "-")
+	(. name replaceAll "-" " ")
+	name))))
 
 (defn name->key [name]
   (keyword (. name toLowerCase)))

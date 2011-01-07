@@ -67,7 +67,7 @@
 		       (not (dead? (:enemy r))))
 	      (. g setColor Color/red)
 	      (. g fillRect x y 10 10))
-	    (when (:treasure r)
+	    (when @(:treasure r)
 	      (. g setColor treasure-color)
 	      (. g fillRect (+ x (- wh 10)) y 10 10))
 	    (when (:up? r)
