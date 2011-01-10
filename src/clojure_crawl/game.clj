@@ -1,13 +1,13 @@
 (ns clojure-crawl.game
   (:use clojure-crawl.utils
-	clojure-crawl.actors
 	clojure-crawl.races
 	clojure-crawl.classes
 	clojure-crawl.skills)
   (:import (clojure-crawl.actors Player))
   (:require [clojure [string :as string]]
 	    [clojure-crawl [map :as gamemap]]
-	    [clojure-crawl [levels :as levels]]))
+	    [clojure-crawl [levels :as levels]]
+	    [clojure-crawl [actors :as actors]]))
 
 (defprotocol IGame
   (set-player [game player])
@@ -18,10 +18,10 @@
   (enemy-attack [game]))
 
 (defn- attack* [att vic]
-  (let [vic-evd? (probability-result (evade vic))
-	att-cri? (probability-result (critical att))
-	defen (defense vic)
-	damage (pos-num (attack att))]
+  (let [vic-evd? (probability-result (actors/evade vic))
+	att-cri? (probability-result (actors/critical att))
+	defen (actors/defense vic)
+	damage (pos-num (actors/attack att))]
     {:damage (if att-cri?
 	       (- (* 2 damage) defen)
 	       (- damage defen))
@@ -30,14 +30,14 @@
 
 (defn- use-skill* [skill att vic]
   (let [target (:target skill)
-	desc (describe-skill skill att)]
+	desc (actors/describe-skill skill att)]
     (cond (= target :enemy)
 	  (let [crit (:critical desc)
 		crit? (probability-result (if crit crit 0))
 		dmg (if (:attack desc)
-		      (skill-attack skill att)
+		      (actors/skill-attack skill att)
 		      0)
-		defen (defense vic)]
+		defen (actors/defense vic)]
 	    {:damage (if crit?
 		       (- (* 2 dmg) defen)
 		       (- dmg defen))
@@ -46,7 +46,7 @@
 	  (let [crit (:critical desc)
 		crit? (probability-result (if crit crit 0))
 		dmg (if (:attack desc)
-		      (skill-attack skill att)
+		      (actors/skill-attack skill att)
 		      0)]
 	    {:damage (if crit? (* 2 (- dmg)) (- dmg))
 	     :critical crit?}))))
@@ -67,19 +67,19 @@
 	     (let [player @(:player game)
 		   enemy (:enemy @(:current-room game))]
 	       (when (and enemy
-			  (not (dead? enemy)))
+			  (not (actors/dead? enemy)))
 		 (let [res (attack* player enemy)]
 		   (when (not (:evade res))
-		     (damage enemy (:damage res)))
+		     (actors/damage enemy (:damage res)))
 		   res))))
   (enemy-attack [game]
 	     (let [player @(:player game)
 		   enemy (:enemy @(:current-room game))]
 	       (when (and enemy
-			  (not (dead? enemy)))
+			  (not (actors/dead? enemy)))
 		 (let [res (attack* enemy player)]
 		   (when (not (:evade res))
-		     (damage player (:damage res)))
+		     (actors/damage player (:damage res)))
 		   res)))))
 
 (def game (new Game (atom nil) (atom nil) (atom nil) (atom nil)))
@@ -91,11 +91,11 @@
 
 (defn- life-skill-bonus [skills actor]
   (let [pass (filter #(not (:active? %)) skills)]
-    (reduce + (map #(skill-life % actor) skills))))
+    (reduce + (map #(actors/skill-life % actor) skills))))
 
 (defn- mana-skill-bonus [skills actor]
   (let [pass (filter #(not (:active? %)) skills)]
-    (reduce + (map #(skill-mana % actor) skills))))
+    (reduce + (map #(actors/skill-mana % actor) skills))))
 
 (defn new-player [name race clazz]
   (let [r (race *races*)
@@ -138,7 +138,7 @@
 	enemy (:enemy room)]
     (if (side room)
       (if enemy
-	(if (or (dead? enemy)
+	(if (or (actors/dead? enemy)
 		(not (:aware enemy)))
 	  true
 	  false)
@@ -150,7 +150,7 @@
     (gamemap/go side)
     (reset! (:current-room game) @gamemap/current-room)
     (when-let [enemy (:enemy @gamemap/current-room)]
-      (let [p (probability-result (hide @(:player game)))]
+      (let [p (probability-result (actors/hide @(:player game)))]
 	(when-not p
 	  (reset! (:aware enemy) true))))))
 
@@ -176,7 +176,7 @@
   @(:player game))
 
 (defn- give-xp-skill [skill player res]
-  (add-skill-xp player skill (levels/skill-xp-for-level))
+  (actors/add-skill-xp player skill (levels/skill-xp-for-level))
   (if (levels/skill-leveled? skill)
     (do
       (levels/skill-level-up skill)
@@ -184,9 +184,9 @@
     (assoc res :skill skill)))
 
 (defn- give-xp [player enemy res]
-  (if (dead? enemy)
+  (if (actors/dead? enemy)
     (let [xp (levels/xp-for-level (:level enemy))]
-      (add-xp player xp)
+      (actors/add-xp player xp)
       (if (levels/leveled? player)
 	(do
 	  (levels/level-up player)
@@ -204,15 +204,15 @@
   (enemy-attack game))
 
 (defn- use-skill [skill att vic give-xp?]
-  (let [consume (mana-consume skill att)]
+  (let [consume (actors/mana-consume skill att)]
     (if (can-use att skill)
       (let [res (use-skill* skill att vic)
 	    target (:target skill)]
 	(cond (= target :enemy)
-	      (damage vic (:damage res))
+	      (actors/damage vic (:damage res))
 	      (= target :self)
-	      (damage att (:damage res)))
-	(consume-mana att consume)
+	      (actors/damage att (:damage res)))
+	(actors/consume-mana att consume)
 	(if give-xp?
 	  (give-xp att vic (give-xp-skill skill att res))
 	  (assoc res :skill skill)))
@@ -233,7 +233,7 @@
   (if-let [item @(:treasure (current-room))]
     (do
       (reset! (:treasure (current-room)) nil)
-      (let [add (add-item (player) item)]
+      (let [add (actors/add-item (player) item)]
 	(if add
 	  :added
 	  :full)))
@@ -247,22 +247,27 @@
   (gamemap/reset))
 
 (defn remove-item [item]
-  (let [bag (:bag (player))]
-    (reset! bag (vec (remove #{item} @bag)))))
+  (actors/remove-item (player) item))
+
+(defn equip-item [item]
+  (actors/equip-item (player) item))
+
+(defn unequip-item [item]
+  (actors/unequip-item (player) item))
 
 ;; helpers
 (defn show-player [player]
   (str "===== " (:name player) " =====\n"
        "race: " (:name (:race player)) "\n"
        "class: " (:name @(:clazz player)) "\n\n"
-       "strength: " (strength player) "\n"
-       "agility: " (agility player) "\n"
-       "health: " (health player) "\n"
-       "magic: " (magic player) "\n"
-       "life: " @(:life player) "/" (max-life player) "\n"
-       "mana: " @(:mana player) "/" (max-mana player) "\n"
-       "life regen: " (double (life-regen player)) " per second\n"
-       "mana regen: " (double (mana-regen player)) " per second\n"
+       "strength: " (actors/strength player) "\n"
+       "agility: " (actors/agility player) "\n"
+       "health: " (actors/health player) "\n"
+       "magic: " (actors/magic player) "\n"
+       "life: " @(:life player) "/" (actors/max-life player) "\n"
+       "mana: " @(:mana player) "/" (actors/max-mana player) "\n"
+       "life regen: " (double (actors/life-regen player)) " per second\n"
+       "mana regen: " (double (actors/mana-regen player)) " per second\n"
        "skills: " (string/join ", " (map :name @(:skills player)))))
 
 (defn- target->str [target]
@@ -299,7 +304,7 @@
 
 (defn show-skill [name player]
   (let [skill (first (filter #(= name (:name %)) @(:skills player)))
-	desc (describe-skill skill player)]
+	desc (actors/describe-skill skill player)]
     (str (:name skill) "\n"
 	 (:description skill) "\n"
 	 (if (:active? skill)

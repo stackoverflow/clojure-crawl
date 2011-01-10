@@ -132,6 +132,9 @@
 	(. (:description gui-treasure) setText (items/show-item tre))
 	(. gameframe repaint)))))
 
+(defn- reset-gui-bag []
+  (. (second (:bag gui-player)) setText ""))
+
 (defn- set-gui-bag []
   (when-let [player @(:player game/game)]
     (let [bag @(:bag player)
@@ -306,11 +309,15 @@
 	[list area] (:bag gui-player)
 	scpanedesc (new JScrollPane area)
 	scpanelist (new JScrollPane list)]
-;    (add-action-listener equip)
+    (add-action-listener equip
+			 (when-let [i (. list getSelectedIndex)]
+			   (let [item (nth @(:bag (game/player)) i)]
+			     (game/remove-item item))))
     (add-action-listener delete
 			 (when-let [i (. list getSelectedIndex)]
 			   (let [item (nth @(:bag (game/player)) i)]
 			     (game/remove-item item)
+			     (reset-gui-bag)
 			     (set-gui-bag))))
     (set-bounds [scpanelist [10 20 140 220]
 		 scpanedesc [160 20 240 220]

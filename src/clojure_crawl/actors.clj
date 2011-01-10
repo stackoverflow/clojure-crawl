@@ -48,6 +48,9 @@
   (dead? [actor])
   (damage [actor dmg])
   (add-item [actor item])
+  (remove-item [actor item])
+  (equip-item [actor item])
+  (unequip-item [actor item])
   (add-xp [actor xp])
   (add-skill-xp [actor skill xp])
   (consume-mana [actor amount]))
@@ -270,6 +273,19 @@
 	    (let [bag (:bag player)]
 	      (when (< (count @bag) 20)
 		(swap! bag conj item))))
+  (remove-item [player item]
+	       (let [bag (:bag player)]
+		 (reset! bag (vec (remove #{item} @bag)))))
+  (equip-item [player item]
+	      (let [equip (:equip player)
+		    typ (:type item)]
+		(if (typ @equip)
+		  false
+		  (swap! equip assoc typ item))))
+  (unequip-item [player item]
+		(let [equip (:equip player)
+		      typ (:type item)]
+		  (swap! equip dissoc typ)))
   (add-xp [player xp]
 	  (swap! (:exp player) + xp))
   (add-skill-xp [player skill xp]
