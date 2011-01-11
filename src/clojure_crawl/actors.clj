@@ -154,10 +154,11 @@
   (reduce + (map key @(:effects player))))
 
 (defn- equip-bonus [key player]
-  (let [eq (reduce + (map key (map :effect @(:equip player))))
-	pre (reduce + (map key (map :effect (map :prefix @(:equip player)))))
-	suf (reduce + (map key (map :effect (map :suffix @(:equip player)))))]
-    (+ eq pre suf)))
+  (let [add (fn [& xs] (apply + (remove nil? xs)))
+	eq (reduce add (map key (map :effect (vals @(:equip player)))))
+	pre (reduce add (map key (map :effect (map :prefix (vals @(:equip player))))))
+	suf (reduce add (map key (map :effect (map :suffix (vals @(:equip player))))))]
+    (add eq pre suf)))
 
 (defn- skill-bonus [key player]
   (let [passives (filter #(not (:active? %)) @(:skills player))
@@ -230,26 +231,26 @@
 	      (+ mm bonus)))
   (base-attack [player]
 	       (let [bonus (all-bonus :attack player)
-		     s @(:strength player)]
+		     s (strength player)]
 		 [(+ (/ s 3) bonus) (+ (/ s 2) bonus)]))
   (attack [player]
 	  (let [bonus (all-bonus :attack player)
-		s @(:strength player)
+		s (strength player)
 		s3 (double (/ s 3))
 		s2 (double (/ s 2))]
 	    (rand-between (+ s3 bonus) (+ s2 bonus))))
   (defense [player]
     (let [bonus (all-bonus :defense player)
-	  s @(:strength player)
-	  h @(:health player)]
+	  s (strength player)
+	  h (health player)]
       (+ (/ (+ s h) 10) bonus)))
   (critical [player]
 	    (let [bonus (all-bonus :critical player)
-		  a @(:agility player)]
+		  a (agility player)]
 	      (+ (* a 0.08) bonus)))
   (evade [player]
 	 (let [bonus (all-bonus :evade player)
-	       a @(:agility player)]
+	       a (agility player)]
 	   (+ (* a 0.06) bonus)))
   (life-regen [player]
 	      (let [bonus (all-bonus :life-regen player)
@@ -265,7 +266,7 @@
 	  (swap! (:life player) - dmg))
   (damage [player dmg]
 	  (let [life (:life player)
-		max-life @(:max-life player)
+		max-life (max-life player)
 		nlife (- @life dmg)
 		rnlife (if (> nlife max-life) max-life nlife)]
 	    (reset! life rnlife)))

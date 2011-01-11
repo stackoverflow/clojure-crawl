@@ -117,7 +117,7 @@
 		    (atom mana)
 		    (atom mana) ;max mana
 		    (atom 1) ; level
-		    (atom []) ;equip
+		    (atom {}) ;equip
 		    (atom []) ;bag
 		    (atom []))] ;effects
     (swap! (:life player) + (life-skill-bonus skills player))
@@ -229,15 +229,17 @@
 	enemy (current-enemy)]
     (use-skill skill enemy pl false)))
 
-(defn pickup-item []
-  (if-let [item @(:treasure (current-room))]
-    (do
-      (reset! (:treasure (current-room)) nil)
-      (let [add (actors/add-item (player) item)]
-	(if add
-	  :added
-	  :full)))
-    :no-item))
+(defn pickup-item
+  ([] (pickup-item @(:treasure (current-room))))
+  ([item]
+     (if item
+       (do
+	 (reset! (:treasure (current-room)) nil)
+	 (let [add (actors/add-item (player) item)]
+	   (if add
+	     :added
+	     :full)))
+       :no-item)))
 
 (defn reset []
   (reset! (:player game) nil)

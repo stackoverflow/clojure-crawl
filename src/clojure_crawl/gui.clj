@@ -16,8 +16,6 @@
 	    [clojure-crawl [levels :as levels]]
 	    [clojure-crawl [items :as items]]))
 
-;(set! *warn-on-reflection* true)
-
 ;; set default look and feel
 (UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
@@ -311,8 +309,16 @@
 	scpanelist (new JScrollPane list)]
     (add-action-listener equip
 			 (when-let [i (. list getSelectedIndex)]
-			   (let [item (nth @(:bag (game/player)) i)]
-			     (game/remove-item item))))
+			   (let [item (nth @(:bag (game/player)) i)
+				 res (game/equip-item item)]
+			     (if res
+			       (do
+				 (game/remove-item item)
+				 (reset-gui-bag)
+				 (set-gui-bag)
+				 (set-gui-player)
+				 (status-print "Item equipped."))
+			       (status-print "Failed. You have to unequip first.")))))
     (add-action-listener delete
 			 (when-let [i (. list getSelectedIndex)]
 			   (let [item (nth @(:bag (game/player)) i)]
@@ -345,7 +351,16 @@
 	[list area] (:equip gui-player)
 	scpanedesc (new JScrollPane area)
 	scpanelist (new JScrollPane list)]
-;    (add-action-listener unequip)
+    (add-action-listener unequip
+			 (let [k (. list getSelectedValue)
+			       equip @(:equip (game/player))]
+			   (when (and k (not (. k isEmpty)))
+			     (when-let [item ((name->key k) equip)]
+			       (game/unequip-item item)
+			       (game/pickup-item item)
+			       (set-gui-bag)
+			       (set-gui-player)
+			       (. area setText "")))))
     (set-bounds [scpanelist [10 20 90 220]
 		 scpanedesc [110 20 290 220]
 		 unequip [10 250 80 25]])
@@ -355,8 +370,9 @@
        (list-selection-listener (let [k (. list getSelectedValue)
 				      equip @(:equip (game/player))]
 				  (when (and k (not (. k isEmpty)))
-				    (when-let [item ((name->key k) equip)]
-				      (. area setText (items/show-item item)))))))
+				    (if-let [item ((name->key k) equip)]
+				      (. area setText (items/show-item item))
+				      (. area setText ""))))))
     (add-all panel unequip scpanelist scpanedesc)
     (doto panel
       (. setLayout nil)

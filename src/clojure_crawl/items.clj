@@ -328,9 +328,6 @@
       {:name "Super Mixed Potion", :type :item, :kind :potion, :level 80,
        :effect {:life (range 500 533), :mana (range 66 80)}}])
 
-(defn- add-effects [& effects]
-  (things/create-effect (apply merge-with + effects)))
-
 (defn- range-fn [level]
   (fn [m] (some #{(:level m)} (range (- level 50) (+ level 10)))))
 
@@ -396,7 +393,7 @@
 		 (and s (not p))
 		 (merge-with add ifx (:effect s))
 		 (and p s)
-		 (merge-with + ifx (:effect p) (:effect s)))]
+		 (merge-with add ifx (:effect p) (:effect s)))]
     (str (item-name item) "\n"
 	 "Type: " (key->name (:type item)) "\n"
 	 "Kind: " (key->name (:kind item)) "\n"
