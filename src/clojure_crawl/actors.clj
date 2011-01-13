@@ -51,6 +51,7 @@
   (remove-item [actor item])
   (equip-item [actor item])
   (unequip-item [actor item])
+  (use-item [actor item])
   (add-xp [actor xp])
   (add-skill-xp [actor skill xp])
   (consume-mana [actor amount]))
@@ -287,6 +288,15 @@
 		(let [equip (:equip player)
 		      typ (:type item)]
 		  (swap! equip dissoc typ)))
+  (use-item [player item]
+	    (let [eff (:effect item)]
+	      (doseq [k (keys eff)]
+		(when-let [v (k eff)]
+		  (swap! (k player) + v)))
+	      (if (> @(:life player) (max-life player))
+		(swap! (:life player) (max-life player)))
+	      (if (> @(:mana player) (max-mana player))
+		(swap! (:mana player) (max-mana player)))))
   (add-xp [player xp]
 	  (swap! (:exp player) + xp))
   (add-skill-xp [player skill xp]

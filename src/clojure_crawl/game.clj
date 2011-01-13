@@ -257,6 +257,9 @@
 (defn unequip-item [item]
   (actors/unequip-item (player) item))
 
+(defn use-item [item]
+  (actors/use-item (player) item))
+
 ;; helpers
 (defn show-player [player]
   (str "===== " (:name player) " =====\n"

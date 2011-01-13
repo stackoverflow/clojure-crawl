@@ -20,7 +20,7 @@
                " shrine, " " up, " " down"]
         colors [Color/blue Color/red treasure-color
                 Color/green Color/magenta Color/gray]
-        h (height 2 asc)
+        h (height 1 asc)
 	initx (. fm stringWidth "Legend: ")]
     (. g setColor Color/white)
     (. g drawString "Legend: " 5 h)
@@ -42,12 +42,12 @@
 	asc (. fm getAscent)
 	wh 35
 	startx 5
-	starty 350
+	starty 400
 	gap 5]
     (. g setColor Color/black)
     (. g fillRect 0 0 w, h)
     (. g setColor Color/white)
-    (. g drawString (str "Level: " (:depth level)) 5 (height 1 asc))
+    (. g drawString (str "Level: " (:depth level)) (- w 60) (height 1 asc))
     (gen-legend g fm asc)
     (. g setColor Color/white)
     (loop [rooms (:rooms @current-level)]
@@ -93,5 +93,5 @@
 				  h (. ^JComponent this getHeight)]
 			      (proxy-super paintComponent g)
 			      (draw-map g w h))))]
-    (. c setSize 450 400)
+    (. c setSize 500 450)
     c))

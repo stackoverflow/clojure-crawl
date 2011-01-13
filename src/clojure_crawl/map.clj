@@ -4,7 +4,9 @@
 	clojure-crawl.utils
 	clojure-crawl.items))
 
-(def size 8)
+(def size 10)
+
+(def removes 35)
 
 (def *enemy-chance* 45)
 
@@ -67,7 +69,7 @@
 (defn- gen-level-structure []
   (let [level (atom (set (range 1 (inc (* size size)))))
         total (atom 0)]
-    (while (< @total 25)
+    (while (< @total removes)
       (let [choice (rand-nth (vec @level))]
         (when (graph-complete? (disj @level choice))
           (swap! level disj choice)

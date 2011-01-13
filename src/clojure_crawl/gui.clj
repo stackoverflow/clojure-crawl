@@ -14,7 +14,8 @@
 	clojure-crawl.guiutils)
   (:require [clojure-crawl [game :as game]]
 	    [clojure-crawl [levels :as levels]]
-	    [clojure-crawl [items :as items]]))
+	    [clojure-crawl [items :as items]]
+	    [clojure-crawl [keylistener :as keylistener]]))
 
 ;; set default look and feel
 (UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
@@ -147,7 +148,7 @@
 (defn init-gui []
   (reset-game)
   (. gameframe setContentPane newpanel)
-  (. gameframe setMinimumSize (new Dimension 800 800))
+  (. gameframe setMinimumSize (new Dimension 1000 800))
   (. gameframe setResizable false)
   (. gameframe setVisible true))
 
@@ -325,6 +326,18 @@
 			     (game/remove-item item)
 			     (reset-gui-bag)
 			     (set-gui-bag))))
+    (add-action-listener use
+			 (when-let [i (. list getSelectedIndex)]
+			   (let [item (nth @(:bag (game/player)) i)]
+			     (if (= (:type item) :item)
+			       (do
+				 (game/use-item item)
+				 (game/remove-item item)
+				 (reset-gui-bag)
+				 (set-gui-bag)
+				 (set-gui-player)
+				 (status-print "Item successfully used"))
+			       (status-print "Cannot use equipment")))))
     (set-bounds [scpanelist [10 20 140 220]
 		 scpanedesc [160 20 240 220]
 		 equip [10 250 80 25]
@@ -411,7 +424,7 @@
         ^JButton down (new JButton "Descend")]
     (set-gui-player)
     (. skills setLocation 0 380)
-    (. mapcanvas setLocation 300 10)
+    (. mapcanvas setLocation 280 10)
     (. enemypanel setLocation 0 380)
     (. actionpanel setLocation 270 480)
     (. treasurepanel setLocation 530 480)
@@ -423,12 +436,14 @@
                          (if (= name "Game")
                            (. gametab add playerpanel)
                            (. playertab add playerpanel)))))
-    (set-bounds [front [480 420 70 25]
-                 rear [480 450 70 25]
-                 left [400 450 70 25]
-                 right [560 450 70 25]
-                 up [370 420 90 25]
-                 down [570 420 90 25]])
+    (. gamepanel addKeyListener (keylistener/key-listener))
+    (keylistener/add-key-released :a (fn [] (println "aaaaa")))
+    (set-bounds [front [900 100 70 25]
+                 rear [900 150 70 25]
+                 left [900 200 70 25]
+                 right [900 250 70 25]
+                 up [900 300 90 25]
+                 down [900 350 90 25]])
     (add-action-listener front (gui-move :front))
     (add-action-listener rear (gui-move :rear))
     (add-action-listener left (gui-move :left))
@@ -447,20 +462,20 @@
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
-      (. setSize 800 730))
+      (. setSize 1000 730))
     (doto gametab
       (. setLayout nil)
-      (. setSize 800 710))
+      (. setSize 1000 710))
     (doto playertab
       (. setLayout nil)
-      (. setSize 800 710))))
+      (. setSize 1000 710))))
 
 (defn- goto-game [pname race clazz]
   (let [^JPanel panel (new JPanel)]
     (game/start-game pname race clazz)
     (set-gui-player)
     (set-gui-treasure)
-    (set-bounds [panel [0 20 800 780]])
+    (set-bounds [panel [0 20 1000 780]])
     (. gamepanel setLocation 0 0)
     (. statusbar setLocation 0 730)
     (doto panel
