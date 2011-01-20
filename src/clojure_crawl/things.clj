@@ -8,7 +8,7 @@
 
 (defrecord AFix [name type level effect])
 
-(defrecord Item [name type kind prefix suffix level effect])
+(defrecord Item [id name type kind prefix suffix level effect])
 
 (defn- show-valid
   ([key effect]

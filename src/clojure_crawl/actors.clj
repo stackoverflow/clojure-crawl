@@ -47,6 +47,8 @@
   (hide [actor])
   (dead? [actor])
   (damage [actor dmg])
+  (regen-life [actor])
+  (regen-mana [actor])
   (add-item [actor item])
   (remove-item [actor item])
   (equip-item [actor item])
@@ -271,6 +273,18 @@
 		nlife (- @life dmg)
 		rnlife (if (> nlife max-life) max-life nlife)]
 	    (reset! life rnlife)))
+  (regen-life [player]
+	      (let [life (:life player)
+		    max-life (max-life player)
+		    nlife (+ @life (life-regen player))
+		    rnlife (if (> nlife max-life) max-life nlife)]
+		(reset! life rnlife)))
+  (regen-mana [player]
+	      (let [mana (:mana player)
+		    max-mana (max-mana player)
+		    nmana (+ @mana (mana-regen player))
+		    rnmana (if (> nmana max-mana) max-mana nmana)]
+		(reset! mana rnmana)))
   (add-item [player item]
 	    (let [bag (:bag player)]
 	      (when (< (count @bag) 20)

@@ -8,9 +8,9 @@
 
 (def removes 35)
 
-(def *enemy-chance* 45)
+(def *enemy-chance* 40)
 
-(def *treasure-chance* 15)
+(def *treasure-chance* 20)
 
 (def current-room (atom nil))
 

@@ -3,9 +3,10 @@
 			JMenuItem JOptionPane JPanel JLabel
 			JList JTextField JTextArea JButton
 			JScrollPane ListSelectionModel
-			BorderFactory JTabbedPane JComponent)
+			BorderFactory JTabbedPane)
 	   (javax.swing.border TitledBorder)
-	   (java.awt Dimension Color BorderLayout))
+	   (java.awt Dimension Color BorderLayout)
+	   (java.awt.event MouseListener KeyEvent))
   (:use clojure-crawl.actors
 	clojure-crawl.races
 	clojure-crawl.classes
@@ -33,7 +34,7 @@
 
 (def ^JPanel newpanel (new JPanel))
 
-(def ^JComponent mapcanvas (create-map-canvas))
+(def ^JPanel mapcanvas (create-map-canvas))
 
 (def ^JLabel statuslabel (new JLabel "" JLabel/RIGHT))
 
@@ -148,7 +149,7 @@
 (defn init-gui []
   (reset-game)
   (. gameframe setContentPane newpanel)
-  (. gameframe setMinimumSize (new Dimension 1000 800))
+  (. gameframe setMinimumSize (new Dimension 800 800))
   (. gameframe setResizable false)
   (. gameframe setVisible true))
 
@@ -178,6 +179,7 @@
 	  (status-print fail-msg))
 	(set-gui-player)
 	(set-gui-enemy)
+	(set-gui-treasure)
 	(repaint-map))
       (status-print "No enemy in the room"))))
 
@@ -415,13 +417,7 @@
 	actionpanel (create-actionpanel)
 	treasurepanel (create-treasurepanel)
 	bagpanel (create-bagpanel)
-	equippanel (create-equippanel)
-        ^JButton front (new JButton "Front")
-        ^JButton rear (new JButton "Rear")
-        ^JButton left (new JButton "Left")
-        ^JButton right (new JButton "Right")
-        ^JButton up (new JButton "Ascend")
-        ^JButton down (new JButton "Descend")]
+	equippanel (create-equippanel)]
     (set-gui-player)
     (. skills setLocation 0 380)
     (. mapcanvas setLocation 280 10)
@@ -436,72 +432,114 @@
                          (if (= name "Game")
                            (. gametab add playerpanel)
                            (. playertab add playerpanel)))))
-    (. gamepanel addKeyListener (keylistener/key-listener))
-    (keylistener/add-key-released :a (fn [] (println "aaaaa")))
-    (set-bounds [front [900 100 70 25]
-                 rear [900 150 70 25]
-                 left [900 200 70 25]
-                 right [900 250 70 25]
-                 up [900 300 90 25]
-                 down [900 350 90 25]])
-    (add-action-listener front (gui-move :front))
-    (add-action-listener rear (gui-move :rear))
-    (add-action-listener left (gui-move :left))
-    (add-action-listener right (gui-move :right))
-    (add-action-listener up (do
-			      (game/ascend)
-			      (status-print "")
-			      (repaint-map)))
-    (add-action-listener down (do
-				(game/descend)
-				(status-print "")
-				(repaint-map)))
-    (add-all gametab front rear left right up down mapcanvas enemypanel
+    (. mapcanvas addKeyListener (keylistener/key-listener))
+    (keylistener/add-key-released KeyEvent/VK_LEFT
+				  (fn [] (gui-move :left)))
+    (keylistener/add-key-released KeyEvent/VK_RIGHT
+				  (fn [] (gui-move :right)))
+    (keylistener/add-key-released KeyEvent/VK_UP
+				  (fn [] (gui-move :front)))
+    (keylistener/add-key-released KeyEvent/VK_DOWN
+				  (fn [] (gui-move :rear)))
+    (keylistener/add-key-released KeyEvent/VK_HOME
+				  (fn [] ((do
+					    (game/descend)
+					    (status-print "")
+					    (repaint-map)))))
+    (keylistener/add-key-released KeyEvent/VK_END
+				  (fn [] ((do
+					    (game/ascend)
+					    (status-print "")
+					    (repaint-map)))))
+    (keylistener/add-key-released KeyEvent/VK_P
+				  (fn [] (let [res (game/pickup-item)]
+					   (cond (= res :added)
+						 (status-print "item added to bag.")
+						 (= res :full)
+						 (status-print "bag is full.")
+						 (= res :no-item)
+						 (status-print "no item to pick up."))
+					   (repaint-map)
+					   (reset-gui-treasure)
+					   (set-gui-bag))))
+    (keylistener/add-key-released KeyEvent/VK_S
+				  (fn [] (if-let [name (. (:act-skills gui-player) getSelectedValue)]
+					   (gui-skill name)
+					   (status-print "No skill selected"))))
+    (keylistener/add-key-released KeyEvent/VK_A
+				  (fn [] (gui-attack)))
+    (.addMouseListener mapcanvas
+		       (proxy [MouseListener] []
+			 (mousePressed [e]
+				       (.requestFocusInWindow mapcanvas))
+			 (mouseEntered [e])
+			 (mouseExited [e])
+			 (mouseClicked [e])
+			 (mouseReleased [e])))
+    (add-all gametab mapcanvas enemypanel
 	     actionpanel treasurepanel)
     (add-all playertab bagpanel equippanel skills)
     (doto gamepanel
       (. addTab "Game" gametab)
       (. addTab "Player" playertab)
-      (. setSize 1000 730))
+      (. setSize 800 730))
     (doto gametab
       (. setLayout nil)
-      (. setSize 1000 710))
+      (. setSize 800 710))
     (doto playertab
       (. setLayout nil)
-      (. setSize 1000 710))))
+      (. setSize 800 710))))
+
+(defn- how-to-play []
+  (show-message gameframe (str "right - go right\n"
+			       "left - go left\n"
+			       "up - go up\n"
+			       "down - go down\n"
+			       "home - descend a level\n"
+			       "end - ascend a level\n"
+			       "a - attack\n"
+			       "s - use selected skill\n"
+			       "p - pickup drop/treasure\n\n"
+			       "*IMPORTANT: if the keyboard stop "
+			       "responding click on the map") "How to play"))
 
 (defn- goto-game [pname race clazz]
   (let [^JPanel panel (new JPanel)]
     (game/start-game pname race clazz)
     (set-gui-player)
     (set-gui-treasure)
-    (set-bounds [panel [0 20 1000 780]])
+    (set-bounds [panel [0 20 800 780]])
     (. gamepanel setLocation 0 0)
     (. statusbar setLocation 0 730)
     (doto panel
       (. setLayout nil)
       (. add gamepanel)
       (. add statusbar))
-    (. gameframe setContentPane panel)))
+    (. gameframe setContentPane panel)
+    (how-to-play)
+    (.requestFocusInWindow mapcanvas)))
 
 (defn- init-menu []
   (let [mainmenu (new JMenuBar)
         gamemenu (new JMenu "game")
         saveitem (new JMenuItem "save")
         loaditem (new JMenuItem "load")
+	howitem (new JMenuItem "how to play")
         exititem (new JMenuItem "exit")
         helpmenu (new JMenu "help")
         aboutitem (new JMenuItem "about")]
     (. gamemenu add saveitem)
     (. gamemenu add loaditem)
+    (. gamemenu add howitem)
     (. gamemenu add exititem)
     (. helpmenu add aboutitem)
-    (. aboutitem addActionListener
-       (action-listener
-	(show-message gameframe "Clojure Crawler - a dungeon crawler made in clojure.
+    (add-action-listener aboutitem
+			 (show-message gameframe "Clojure Crawler - a dungeon crawler made in clojure.
 Source released under Eclipse License.
 http://github.com/stackoverflow/clojure-crawl"
-		      "Clojure Crawler")))
+				       "Clojure Crawler"))
+    (add-action-listener howitem
+			 (how-to-play))
     (. mainmenu add gamemenu)
     (. mainmenu add helpmenu)
     (. gameframe setJMenuBar mainmenu)))

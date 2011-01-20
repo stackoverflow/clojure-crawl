@@ -5,6 +5,12 @@
 
 (def *fix-chance* 25)
 
+(def ^{:private true} current-id (atom 0))
+
+(defn- next-id []
+  (swap! current-id inc)
+  @current-id)
+
 (def *prefixes*
      [{:name "Jagged", :level 10, :type [:weapon], :effect {:attack (range 1 7)}}
       {:name "Deadly", :level 20, :type [:weapon], :effect {:attack (range 9 15)}}
@@ -353,7 +359,7 @@
   (let [equip? (probability-result 50)]
     (if (not equip?)
       (let [item (rand-nth (filter (range-fn level) *items*))]
-	(new Item (:name item) (:type item) (:kind item) nil nil (:level item)
+	(new Item (next-id) (:name item) (:type item) (:kind item) nil nil (:level item)
 	     (things/create-effect (into {} (map gen-random-map (:effect item))))))
       (let [type (rand-nth things/*equip-types*)
 	    prefix? (if (= type :ring)
@@ -368,7 +374,7 @@
 	    suffix (when suffix? (get-random-suffix level type))
 	    itemtype (filter #(= (:type %) type) *equips*)
 	    item (rand-nth (filter (range-fn level) itemtype))]
-	(new Item (:name item) type (:kind item) prefix suffix (:level item)
+	(new Item (next-id) (:name item) type (:kind item) prefix suffix (:level item)
 	     (things/create-effect (into {} (map gen-random-map (:effect item)))))))))
 
 (defn item-name [item]

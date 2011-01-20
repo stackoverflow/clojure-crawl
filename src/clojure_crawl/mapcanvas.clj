@@ -1,7 +1,7 @@
 (ns clojure-crawl.mapcanvas
   (:use clojure-crawl.map
 	clojure-crawl.actors)
-  (:import (javax.swing JComponent)
+  (:import (javax.swing JPanel)
 	   (java.awt Graphics Color Font FontMetrics)))
 
 (set! *warn-on-reflection* true)
@@ -86,8 +86,8 @@
 	      (. g fillRect (+ x 12) (- y gap) (/ wh 3) gap)))
 	  (recur (next rooms)))))))
 
-(defn ^JComponent create-map-canvas []
-  (let [c (proxy [JComponent] []
+(defn ^JPanel create-map-canvas []
+  (let [c (proxy [JPanel] []
 	    (paintComponent [^Graphics g]
 			    (let [w (. ^JComponent this getWidth)
 				  h (. ^JComponent this getHeight)]

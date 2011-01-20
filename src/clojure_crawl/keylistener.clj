@@ -12,15 +12,10 @@
   (swap! var assoc k f))
 
 (defn- check-key [e var]
-  (let [mods (KeyEvent/getKeyModifiersText (.getModifiersEx e))
-	key (KeyEvent/getKeyText (.getKeyCode e))
-	modkey (if (and mods (not (empty? mods)))
-		 (upper (str mods "+" key))
-		 (upper key))]
+  (let [key (.getKeyCode e)]
     (doseq [[k f] @var]
-      (let [uk (upper (subs (str k) 1))]
-	(when (= uk modkey)
-	  (f))))))
+      (when (= k key)
+	(f)))))
 
 (defn add-key-pressed [k f]
   (add pressed k f))

@@ -7,7 +7,10 @@
   (:require [clojure [string :as string]]
 	    [clojure-crawl [map :as gamemap]]
 	    [clojure-crawl [levels :as levels]]
-	    [clojure-crawl [actors :as actors]]))
+	    [clojure-crawl [actors :as actors]]
+	    [clojure-crawl [items :as items]]))
+
+(def *loot-chance* 40)
 
 (defprotocol IGame
   (set-player [game player])
@@ -21,10 +24,10 @@
   (let [vic-evd? (probability-result (actors/evade vic))
 	att-cri? (probability-result (actors/critical att))
 	defen (actors/defense vic)
-	damage (pos-num (actors/attack att))]
+	damage (actors/attack att)]
     {:damage (if att-cri?
-	       (- (* 2 damage) defen)
-	       (- damage defen))
+	       (pos-num (- (* 2 damage) defen))
+	       (pos-num (- damage defen)))
      :critical (if vic-evd? false att-cri?)
      :evade vic-evd?}))
 
@@ -39,8 +42,8 @@
 		      0)
 		defen (actors/defense vic)]
 	    {:damage (if crit?
-		       (- (* 2 dmg) defen)
-		       (- dmg defen))
+		       (pos-num (- (* 2 dmg) defen))
+		       (pos-num (- dmg defen)))
 	     :critical crit?})
 	  (= target :self)
 	  (let [crit (:critical desc)
@@ -175,6 +178,12 @@
 (defn player []
   @(:player game))
 
+(defn- drop-loot [enemy]
+  (when (and (actors/dead? enemy)
+	     (probability-result *loot-chance*))
+    (let [item (items/gen-random-item (:level enemy))]
+      (reset! (:treasure (current-room)) item))))
+
 (defn- give-xp-skill [skill player res]
   (actors/add-skill-xp player skill (levels/skill-xp-for-level))
   (if (levels/skill-leveled? skill)
@@ -198,6 +207,7 @@
   (let [enemy (current-enemy)
 	res (player-attack game)
 	player (player)]
+    (drop-loot enemy)
     (give-xp player enemy res)))
 
 (defn attack-player []
@@ -221,8 +231,10 @@
 (defn use-skill-player [name]
   (when-let [skill (first (filter #(= name (:name %)) @(:skills (player))))]
     (let [pl (player)
-	  enemy (current-enemy)]
-      (use-skill skill pl enemy true))))
+	  enemy (current-enemy)
+	  res (use-skill skill pl enemy true)]
+      (drop-loot enemy)
+      res)))
 
 (defn use-skill-enemy [skill]
   (let [pl (player)
