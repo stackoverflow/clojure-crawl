@@ -149,16 +149,16 @@
 		  (reset! (:mana enemy) newval))))
 
 ;;; player helper functions
+(defn- add [& xs] (apply + (remove nil? xs)))
 
 (defn- race-bonus [key player]
   (key (:effect (:race player))))
 
 (defn- effect-bonus [key player]
-  (reduce + (map key @(:effects player))))
+  (reduce add (map key @(:effects player))))
 
 (defn- equip-bonus [key player]
-  (let [add (fn [& xs] (apply + (remove nil? xs)))
-	eq (reduce add (map key (map :effect (vals @(:equip player)))))
+  (let [eq (reduce add (map key (map :effect (vals @(:equip player)))))
 	pre (reduce add (map key (map :effect (map :prefix (vals @(:equip player))))))
 	suf (reduce add (map key (map :effect (map :suffix (vals @(:equip player))))))]
     (add eq pre suf)))
@@ -192,17 +192,17 @@
 		      (skill-mana-regen sk player)
 		      (= key :hide)
 		      (skill-hide sk player)))]
-    (let [res (reduce + (map bonus passives))]
+    (let [res (reduce add (map bonus passives))]
       (if res res 0))))
 
 (defn- all-bonus [key player]
-  (+ (race-bonus key player)
+  (add (race-bonus key player)
      (effect-bonus key player)
      (equip-bonus key player)
      (skill-bonus key player)))
 
 (defn- all-bonus-except-race [key player]
-  (+ (effect-bonus key player)
+  (add (effect-bonus key player)
      (equip-bonus key player)
      (skill-bonus key player)))
 
@@ -258,7 +258,7 @@
   (life-regen [player]
 	      (let [bonus (all-bonus :life-regen player)
 		    level @(:level player)]
-		(/ (+ level bonus) 5)))
+		(/ (+ level bonus) 10)))
   (mana-regen [player]
 	      (let [bonus (all-bonus :mana-regen player)
 		    level @(:level player)]
@@ -308,9 +308,9 @@
 		(when-let [v (k eff)]
 		  (swap! (k player) + v)))
 	      (if (> @(:life player) (max-life player))
-		(swap! (:life player) (max-life player)))
+		(reset! (:life player) (max-life player)))
 	      (if (> @(:mana player) (max-mana player))
-		(swap! (:mana player) (max-mana player)))))
+		(reset! (:mana player) (max-mana player)))))
   (add-xp [player xp]
 	  (swap! (:exp player) + xp))
   (add-skill-xp [player skill xp]

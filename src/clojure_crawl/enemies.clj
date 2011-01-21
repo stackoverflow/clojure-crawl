@@ -46,13 +46,15 @@
 	lifeperc (/ (* 100 life) maxlife)
 	skill (first (:skills enemy))]
     (if (and (can-use enemy skill)
-	     (< lifeperc 25))
+	     (< lifeperc 25)
+	     (probability-result 50))
       {:skill skill}
       {:attack true})))
 
 (defmethod ai-action "Sorcerer" [enemy player]
   (let [skill (first (:skills enemy))]
-    (if (can-use enemy skill)
+    (if (and (can-use enemy skill)
+	     (probability-result 50))
       {:skill skill}
       {:attack true})))
 

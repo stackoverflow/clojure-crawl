@@ -16,14 +16,15 @@
   (:require [clojure-crawl [game :as game]]
 	    [clojure-crawl [levels :as levels]]
 	    [clojure-crawl [items :as items]]
-	    [clojure-crawl [keylistener :as keylistener]]))
+	    [clojure-crawl [keylistener :as keylistener]]
+	    [clojure-crawl [regen :as regen]]))
 
 ;; set default look and feel
 (UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
 (defrecord Gui-player [name race clazz strength agility health magic exp life mana level attack defense critical evade life-regen mana-regen hide act-skills all-skills equip bag])
 
-(defrecord Gui-enemy [name description strength agility health magic life mana level attack defense critical evade aware skills])
+(defrecord Gui-enemy [name strength agility health magic life mana level attack defense critical evade aware skills])
 
 (defrecord Gui-treasure [description])
 
@@ -50,8 +51,7 @@
 
 (def gui-enemy (new Gui-enemy (new JLabel) (new JLabel) (new JLabel) (new JLabel)
 		    (new JLabel) (new JLabel) (new JLabel) (new JLabel) (new JLabel)
-		    (new JLabel) (new JLabel) (new JLabel) (new JLabel) (new JLabel)
-		    (new JLabel)))
+		    (new JLabel) (new JLabel) (new JLabel) (new JLabel) (new JLabel)))
 
 (def gui-treasure (new Gui-treasure (new JTextArea)))
 
@@ -64,8 +64,12 @@
 
 (defn- gui-go [side]
   (if (game/can-go? side)
-    (do (game/go side)
-	(repaint-map))
+    (do
+      (game/go side)
+      (let [enemy (game/current-enemy)]
+	(when (and enemy (not @(:aware enemy)))
+	  (status-print "You are hidden!")))
+      (repaint-map))
     (status-print (str "Cannot go " (key->name side)))))
 
 ;; functions
@@ -105,7 +109,6 @@
       (reset-gui-enemy)
       (do
 	(set-texts [(:name gui-enemy) (:name enemy)
-		    (:description gui-enemy) (:description enemy)
 		    (:strength gui-enemy) (str (strength enemy))
 		    (:agility gui-enemy) (str (agility enemy))
 		    (:health gui-enemy) (str (health enemy))
@@ -125,11 +128,11 @@
   (. (:description gui-treasure) setText ""))
 
 (defn- set-gui-treasure []
-  (let [tre @(:treasure (game/current-room))]
-    (if (not tre)
+  (let [tre (:treasure (game/current-room))]
+    (if (or (not tre) (not @tre))
       (reset-gui-treasure)
       (do
-	(. (:description gui-treasure) setText (items/show-item tre))
+	(. (:description gui-treasure) setText (items/show-item @tre))
 	(. gameframe repaint)))))
 
 (defn- reset-gui-bag []
@@ -167,16 +170,36 @@
 (defn- gui-player-action [act-fun fail-msg]
   (let [enemy (game/current-enemy)]
     (if (and enemy (not (dead? enemy)))
-      (let [res (act-fun)]
+      (let [res (act-fun)
+	    mergef (fn [[k v]]
+		     (str (key->name k) " +" (to-num v) "\n"))]
 	(if res
 	  (if (dead? enemy)
-	    (status-print (str (attack->str res) " Enemy is dead"))
+	    (do
+	      (status-print (str (attack->str res) " Enemy is dead"))
+	      (regen/on))
 	    (let [res2 (gui-enemy-turn)]
 	      (status-print (str "Player: " (attack->str res)
 				 " Enemy: " (attack->str res2)))
 	      (when (dead? (game/player))
 		(game-over))))
 	  (status-print fail-msg))
+	(let [ldata (:level-data res)]
+	  (when (and res ldata)
+	    (show-message gameframe
+			  (str "Strength +" (to-num (:strength ldata)) "\n"
+			       "Agility +" (to-num (:agility ldata)) "\n"
+			       "Health +" (to-num (:health ldata)) "\n"
+			       "Magic +" (to-num (:magic ldata)) "\n"
+			       "Life +" (to-num (:life ldata)) "\n"
+			       "Mana +" (to-num (:mana ldata)) "\n"
+			       "Attack [+" (to-num (first (:attack ldata)))
+			       " +" (to-num (second (:attack ldata))) "]\n"
+			       "Critical +" (to-num (:critical ldata)) "\n"
+			       "Evade +" (to-num (:evade ldata)) "\n"
+			       "Life Regen +" (to-num (:life-regen ldata)) "\n"
+			       "Mana Regen +" (to-num (:mana-regen ldata)))
+			  "Level Up!")))
 	(set-gui-player)
 	(set-gui-enemy)
 	(set-gui-treasure)
@@ -232,7 +255,7 @@
 
 (defn- create-enemypanel []
   (let [^JPanel panel (new JPanel)
-        labels ["Name:" "Description:" "Strength:" "Agility:" "Health:" "Magic:"
+        labels ["Name:" "Strength:" "Agility:" "Health:" "Magic:"
                 "Life:" "Mana:" "Level:" "Attack:" "Defense:" "Critical:"
                 "Evade:" "Aware:" "Skills:"]
         y (atom 15)
@@ -403,8 +426,11 @@
   (set-bounds [statuslabel [0 0 790 25]]))
 
 (defn- gui-move [where]
-  (gui-go where)
   (status-print "")
+  (gui-go where)
+  (if (game/has-enemy?)
+    (regen/off)
+    (regen/on))
   (set-gui-enemy)
   (set-gui-treasure))
 
@@ -442,15 +468,15 @@
     (keylistener/add-key-released KeyEvent/VK_DOWN
 				  (fn [] (gui-move :rear)))
     (keylistener/add-key-released KeyEvent/VK_HOME
-				  (fn [] ((do
+				  (fn [] (do
 					    (game/descend)
 					    (status-print "")
-					    (repaint-map)))))
+					    (repaint-map))))
     (keylistener/add-key-released KeyEvent/VK_END
-				  (fn [] ((do
+				  (fn [] (do
 					    (game/ascend)
 					    (status-print "")
-					    (repaint-map)))))
+					    (repaint-map))))
     (keylistener/add-key-released KeyEvent/VK_P
 				  (fn [] (let [res (game/pickup-item)]
 					   (cond (= res :added)
@@ -517,7 +543,10 @@
       (. add statusbar))
     (. gameframe setContentPane panel)
     (how-to-play)
-    (.requestFocusInWindow mapcanvas)))
+    (.requestFocusInWindow mapcanvas)
+    (regen/set-repaint set-gui-player)
+    (regen/on)
+    (regen/start)))
 
 (defn- init-menu []
   (let [mainmenu (new JMenuBar)

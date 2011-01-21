@@ -142,7 +142,7 @@
     (if (side room)
       (if enemy
 	(if (or (actors/dead? enemy)
-		(not (:aware enemy)))
+		(not @(:aware enemy)))
 	  true
 	  false)
 	true)
@@ -178,6 +178,32 @@
 (defn player []
   @(:player game))
 
+(defn- player-level-up [player]
+  (let [get-data (fn [p]
+		   {:strength (actors/strength p)
+		    :agility (actors/agility p)
+		    :health (actors/health p)
+		    :magic (actors/magic p)
+		    :life (actors/max-life p)
+		    :mana (actors/max-mana p)
+		    :attack (actors/base-attack p)
+		    :critical (actors/critical p)
+		    :evade (actors/evade p)
+		    :life-regen (actors/life-regen p)
+		    :mana-regen (actors/mana-regen p)})
+	before (get-data player)]
+    (levels/level-up player)
+    (merge-with super- (get-data player) before)))
+
+(defn- player-skill-level-up [skill player]
+  (let [get-data (fn [p s]
+		   {:consume (actors/mana-consume s p)
+		    :attack (actors/skill-attack s p)
+		    :critical (actors/skill-critical s p)})
+	before (get-data skill player)]
+    (levels/skill-level-up skill)
+    (merge-with super- (get-data skill player) before)))
+
 (defn- drop-loot [enemy]
   (when (and (actors/dead? enemy)
 	     (probability-result *loot-chance*))
@@ -187,9 +213,8 @@
 (defn- give-xp-skill [skill player res]
   (actors/add-skill-xp player skill (levels/skill-xp-for-level))
   (if (levels/skill-leveled? skill)
-    (do
-      (levels/skill-level-up skill)
-      (assoc res :skill skill :skill-level-up true))
+    (let [data (player-skill-level-up skill player)]
+      (assoc res :skill skill :skill-level-up true :skill-level-data data))
     (assoc res :skill skill)))
 
 (defn- give-xp [player enemy res]
@@ -197,9 +222,8 @@
     (let [xp (levels/xp-for-level (:level enemy))]
       (actors/add-xp player xp)
       (if (levels/leveled? player)
-	(do
-	  (levels/level-up player)
-	  (assoc res :exp xp :level-up true))
+	(let [data (player-level-up player)]
+	  (assoc res :exp xp :level-up true :level-data data))
 	(assoc res :exp xp)))
     res))
 
@@ -271,6 +295,26 @@
 
 (defn use-item [item]
   (actors/use-item (player) item))
+
+(defn has-enemy? []
+  (let [enemy (current-enemy)]
+    (and enemy (not (actors/dead? enemy)))))
+
+;; cheats
+
+(defn cheat-life []
+  (let [player (player)]
+    (reset! (:max-life player) 9999)
+    (reset! (:life player) 9999)))
+
+(defn cheat-mana []
+  (let [player (player)]
+    (reset! (:max-mana player) 9999)
+    (reset! (:mana player) 9999)))
+
+(defn cheat-strength []
+  (let [player (player)]
+    (reset! (:strength player) 9999)))
 
 ;; helpers
 (defn show-player [player]

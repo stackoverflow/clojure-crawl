@@ -24,10 +24,10 @@
     (swap! (:agility player) + (:agility clazz))
     (swap! (:health player) + (:health clazz))
     (swap! (:magic player) + (:magic clazz))
-    (swap! (:life player) + (* 15 (:health clazz)))
-    (reset! (:max-life player) @(:life player))
-    (swap! (:mana player) + (* 2 (:magic clazz)))
-    (reset! (:max-mana player) @(:mana player))))
+    (swap! (:max-life player) + (* 15 (:health clazz)))
+    (reset! (:life player) (max-life player))
+    (swap! (:max-mana player) + (* 2 (:magic clazz)))
+    (reset! (:mana player) (max-mana player))))
 
 (defn xp-for-level [level] level)
 

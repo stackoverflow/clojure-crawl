@@ -89,8 +89,8 @@
 (defn ^JPanel create-map-canvas []
   (let [c (proxy [JPanel] []
 	    (paintComponent [^Graphics g]
-			    (let [w (. ^JComponent this getWidth)
-				  h (. ^JComponent this getHeight)]
+			    (let [w (. ^JPanel this getWidth)
+				  h (. ^JPanel this getHeight)]
 			      (proxy-super paintComponent g)
 			      (draw-map g w h))))]
     (. c setSize 500 450)

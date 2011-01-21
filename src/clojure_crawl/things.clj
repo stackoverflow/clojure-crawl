@@ -41,7 +41,7 @@
        (let [lr (:life-regen effect)
 	     mr (:mana-regen effect)]
 	 (str (if (and lr (not= lr 0))
-		(str (to-num (/ (inc lr) 5)) " life regen/second\n")
+		(str (to-num (/ (inc lr) 10)) " life regen/second\n")
 		nil)
 	      (if (and mr (not= mr 0))
 		(str (to-num (/ (inc mr) 20)) " mana regen/second\n")

@@ -66,3 +66,10 @@
   "Returns true if val is a number between center - distance and center + distance."
   [val center distance]
   (some #{val} (range (- center distance) (+ center distance))))
+
+(defn super- [& vs]
+  (let [fi (first vs)]
+    (cond (instance? Number fi)
+	  (apply - vs)
+	  (vector? fi)
+	  (vec (map - vs)))))
