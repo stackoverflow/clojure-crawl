@@ -200,9 +200,9 @@
 		   {:consume (actors/mana-consume s p)
 		    :attack (actors/skill-attack s p)
 		    :critical (actors/skill-critical s p)})
-	before (get-data skill player)]
+	before (get-data player skill)]
     (levels/skill-level-up skill)
-    (merge-with super- (get-data skill player) before)))
+    (merge-with super- (get-data player skill) before)))
 
 (defn- drop-loot [enemy]
   (when (and (actors/dead? enemy)

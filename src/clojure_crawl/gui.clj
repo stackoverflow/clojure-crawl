@@ -200,6 +200,13 @@
 			       "Life Regen +" (to-num (:life-regen ldata)) "\n"
 			       "Mana Regen +" (to-num (:mana-regen ldata)))
 			  "Level Up!")))
+	(let [ldata (:skill-level-data res)]
+	  (when (and res ldata)
+	    (show-message gameframe
+			  (str "Attack +" (to-num (:attack ldata)) "\n"
+			       "Critical +" (to-num (:critical ldata)) "\n"
+			       "Consume +" (to-num (:consume ldata)))
+			  (str (:name (:skill res)) " Level Up!"))))
 	(set-gui-player)
 	(set-gui-enemy)
 	(set-gui-treasure)

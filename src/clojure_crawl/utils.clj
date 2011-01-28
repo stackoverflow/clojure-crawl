@@ -72,4 +72,4 @@
     (cond (instance? Number fi)
 	  (apply - vs)
 	  (vector? fi)
-	  (vec (map - vs)))))
+	  (vec (apply map - vs)))))
