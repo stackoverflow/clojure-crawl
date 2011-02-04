@@ -5,5 +5,8 @@ class change (shrine)
 end game
 balance
 
+- bugs
+"bag is full" but the item vanishes
+
 - remember
 save the current "id" from items.clj in the save game

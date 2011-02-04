@@ -8,7 +8,8 @@
 	    [clojure-crawl [map :as gamemap]]
 	    [clojure-crawl [levels :as levels]]
 	    [clojure-crawl [actors :as actors]]
-	    [clojure-crawl [items :as items]]))
+	    [clojure-crawl [items :as items]]
+	    [clojure-crawl [saver :as saver]]))
 
 (def *loot-chance* 40)
 
@@ -269,12 +270,12 @@
   ([] (pickup-item @(:treasure (current-room))))
   ([item]
      (if item
-       (do
-	 (reset! (:treasure (current-room)) nil)
-	 (let [add (actors/add-item (player) item)]
-	   (if add
-	     :added
-	     :full)))
+       (let [add (actors/add-item (player) item)]
+	 (if add
+	   (do
+	     (reset! (:treasure (current-room)) nil)
+	     :added)
+	   :full))
        :no-item)))
 
 (defn reset []
@@ -299,6 +300,9 @@
 (defn has-enemy? []
   (let [enemy (current-enemy)]
     (and enemy (not (actors/dead? enemy)))))
+
+(defn save []
+  (saver/save game 1))
 
 ;; cheats
 

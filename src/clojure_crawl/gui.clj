@@ -569,6 +569,8 @@
     (. gamemenu add howitem)
     (. gamemenu add exititem)
     (. helpmenu add aboutitem)
+    (add-action-listener saveitem
+			 (game/save))
     (add-action-listener aboutitem
 			 (show-message gameframe "Clojure Crawler - a dungeon crawler made in clojure.
 Source released under Eclipse License.
